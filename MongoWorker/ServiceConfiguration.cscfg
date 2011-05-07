@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ServiceConfiguration serviceName="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceConfiguration" osFamily="1" osVersion="*">
+  <Role name="Mongo">
+    <Instances count="1" />
+    <ConfigurationSettings>
+      <Setting name="MongoDBDataDir" value="DefaultEndpointsProtocol=https;AccountName=tengen;AccountKey=bHN80gb5Ry42A9Qhv+QYMzRIxn0fUAfZRSt4nWCVFg+8jBfK4STnEzqtMj2BkneOF9WFQ8d1zqE/rDdOiZnXNg==" />
+    </ConfigurationSettings>
+  </Role>
+</ServiceConfiguration>

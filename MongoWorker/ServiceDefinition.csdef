@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ServiceDefinition name="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
+  <WorkerRole name="Mongo">
+    <Imports>
+    </Imports>
+    <LocalResources>
+      <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="20" />
+      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="20" />
+    </LocalResources>
+    <ConfigurationSettings>
+      <Setting name="MongoDBDataDir" />
+    </ConfigurationSettings>
+    <Endpoints>
+      <InputEndpoint name="Endpoint1" protocol="tcp" port="10001" localPort="27017" />
+    </Endpoints>
+  </WorkerRole>
+</ServiceDefinition>
