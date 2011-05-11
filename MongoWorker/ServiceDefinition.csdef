@@ -11,7 +11,7 @@
       <Setting name="MongoDBDataDir" />
     </ConfigurationSettings>
     <Endpoints>
-      <InputEndpoint name="Endpoint1" protocol="tcp" port="10001" localPort="27017" />
+      <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />
     </Endpoints>
   </WorkerRole>
 </ServiceDefinition>

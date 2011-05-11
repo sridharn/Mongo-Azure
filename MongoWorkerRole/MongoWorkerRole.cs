@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.IO;
     using System.Net;
+    using System.Net.NetworkInformation;
     using System.Threading;
 
     using Microsoft.WindowsAzure;
@@ -23,9 +24,11 @@
         private const string MongoLocalLogDir = "MongoDBLocalLogDir";
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
+        private const string MongodCommandLine = "--dbpath {0} --port {1} --journal --nohttpinterface ";
 
         private static CloudDrive MongoDrive = null;
-
+        private static string mongoHost;
+        private static int mongoPort;
 
         public override void Run()
         {
@@ -47,15 +50,18 @@
             {
                 configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
             });
-
+            SetHostAndPort();
             StartMongo();
+            MongoHelper.MarkStart(mongoHost, mongoPort);
 
             return base.OnStart();
         }
 
         public override void OnStop()
         {
-            // Need to also do a shutdown of Mongo here.
+            MongoHelper.ShutdownMongo(mongoHost, mongoPort);
+            // sleep for 15 seconds to allow for shutdown before unmount
+            Thread.Sleep(15000);
             try
             {
                 MongoDrive.Unmount();
@@ -76,14 +82,9 @@
             var blobPath = GetBlobPath();
             var logFile = GetMongoLogFile();
 
-            var cmdline = String.Format("--dbpath {0} --port {1} --journal ",
+            var cmdline = String.Format(MongodCommandLine,
                 blobPath,
-                MongoHelper.MongoPort);
-            //var cmdline = String.Format("--dbpath {0} --port {1} --logpath {2} ",
-            //    blobPath,
-            //    MongoHelper.MongoPort,
-            //    logFile);
-
+                mongoPort);
             Process mongodProcess;
 
             // launch mongo
@@ -165,5 +166,12 @@
             return logfile;
         }
 
+
+        private static void SetHostAndPort()
+        {
+            var endPoint = RoleEnvironment.CurrentRoleInstance.InstanceEndpoints[MongoHelper.MongodPortKey].IPEndpoint;
+            mongoHost = endPoint.Address.ToString();
+            mongoPort = endPoint.Port;
+        }
     }
 }

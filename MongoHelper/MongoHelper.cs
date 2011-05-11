@@ -6,31 +6,28 @@
     using System.Linq;
     using System.Text;
 
-    using Microsoft.WindowsAzure.ServiceRuntime;
 
     using MongoDB.Driver;
 
     public class MongoHelper
     {
 
-        public const int MongoPort = 27017;
+        private const string MongoAzureSystemDatabase = "mongoazure";
+        private const string MongoAzureSystemTable = "system";
 
-        public static string GetMongoConnectionString()
+        public const string MongodPortKey = "MongodPort";
+
+        public static string GetMongoConnectionString(string host, int port)
         {
             var connectionString = new StringBuilder();
             connectionString.Append("mongodb://");
-            var endpoints = RoleEnvironment.Roles["Mongo"]
-                .Instances.Select(instance => instance.InstanceEndpoints["MongoPort"])
-                .ToList();
-            var mongoNode = endpoints.First();
-            connectionString.Append(string.Format("{0}:{1}", mongoNode.IPEndpoint.Address,
-                                                      mongoNode.IPEndpoint.Port));
+            connectionString.Append(string.Format("{0}:{1}", host, port));
             return connectionString.ToString();
         }
 
-        public static MongoServer GetMongoServer()
+        public static MongoServer GetMongoServer(string host, int port)
         {
-            var server = MongoServer.Create(GetMongoConnectionString());
+            var server = MongoServer.Create(GetMongoConnectionString(host, port));
 
             if (server == null)
             {
@@ -52,5 +49,38 @@
             return server;
         }
 
+        public static void MarkStart(string mongoHost, int mongoPort)
+        {
+            var server = GetMongoServer(mongoHost, mongoPort);
+            var startEntry = new MongoStartEntry()
+            {
+                Host = mongoHost,
+                Port = mongoPort,
+                StartTime = DateTime.UtcNow
+            };
+            var azureDb = server.GetDatabase(MongoAzureSystemDatabase);
+            var azureTable = azureDb.GetCollection<MongoStartEntry>(MongoAzureSystemTable);
+            azureTable.Insert(startEntry);
+        }
+
+        public class MongoStartEntry
+        {
+            public string Host { get; set; }
+            public int Port { get; set; }
+            public DateTime StartTime { get; set; }
+        }
+
+        public static void ShutdownMongo(string host, int port)
+        {
+            try
+            {
+                var server = GetMongoServer(host, port);
+                server.RunAdminCommand("shutdownServer");
+            }
+            catch 
+            {
+                // ignore exceptions since this is only called during shutdown
+            }
+        }
     }
 }
