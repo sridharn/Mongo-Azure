@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mongo", "MongoWorkerRole\Mo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoHelper", "MongoHelper\MongoHelper.csproj", "{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoTestWebApp", "MongoTestWebApp\MongoTestWebApp.csproj", "{F026DFA9-81C4-414F-93C3-AF417531D46A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,10 @@ Global
 		{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F026DFA9-81C4-414F-93C3-AF417531D46A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F026DFA9-81C4-414F-93C3-AF417531D46A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F026DFA9-81C4-414F-93C3-AF417531D46A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F026DFA9-81C4-414F-93C3-AF417531D46A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

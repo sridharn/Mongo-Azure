@@ -6,8 +6,9 @@
     using System.Linq;
     using System.Text;
 
-
+    using MongoDB.Bson;
     using MongoDB.Driver;
+    using MongoDB.Driver.Builders;
 
     public class MongoHelper
     {
@@ -16,6 +17,7 @@
         private const string MongoAzureSystemTable = "system";
 
         public const string MongodPortKey = "MongodPort";
+        public const string MongoRoleName = "Mongo";
 
         public static string GetMongoConnectionString(string host, int port)
         {
@@ -68,6 +70,13 @@
             public string Host { get; set; }
             public int Port { get; set; }
             public DateTime StartTime { get; set; }
+            public override string ToString()
+            {
+                return string.Format("Host={0} Port={1} Start={2}",
+                    Host,
+                    Port,
+                    StartTime.ToString());
+            }
         }
 
         public static void ShutdownMongo(string host, int port)
@@ -81,6 +90,23 @@
             {
                 // ignore exceptions since this is only called during shutdown
             }
+        }
+
+        public static string GetStatusMessage(string mongoHost, int mongoPort)
+        {
+            var server = GetMongoServer(mongoHost, mongoPort);
+            var azureDb = server.GetDatabase(MongoAzureSystemDatabase);
+            // var azureTable = azureDb.GetCollection<MongoStartEntry>(MongoAzureSystemTable);
+            // var status = azureTable.FindOneAs<MongoStartEntry>();
+            var azureTable = azureDb.GetCollection(MongoAzureSystemTable);
+            var statusDocument = azureTable.FindOne();
+            var status = new MongoStartEntry()
+            {
+                Host = statusDocument.GetValue("Host").AsString,
+                Port = statusDocument.GetValue("Port").AsInt32,
+                StartTime = statusDocument.GetValue("StartTime").AsDateTime
+            };
+            return status.ToString();
         }
     }
 }

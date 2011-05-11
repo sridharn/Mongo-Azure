@@ -35,6 +35,13 @@
     <ServiceConfiguration Include="ServiceConfiguration.cscfg" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\MongoTestWebApp\MongoTestWebApp.csproj">
+      <Name>MongoTestWebApp</Name>
+      <Project>{f026dfa9-81c4-414f-93c3-af417531d46a}</Project>
+      <Private>True</Private>
+      <RoleType>Web</RoleType>
+      <RoleName>MongoTestWebApp</RoleName>
+    </ProjectReference>
     <ProjectReference Include="..\MongoWorkerRole\Mongo.csproj">
       <Name>Mongo</Name>
       <Project>{7a0d1835-2290-44a3-938e-58407ffa543c}</Project>

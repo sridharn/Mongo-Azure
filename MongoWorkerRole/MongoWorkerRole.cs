@@ -52,6 +52,8 @@
             });
             SetHostAndPort();
             StartMongo();
+            // wait for mongo to start
+            Thread.Sleep(75000);
             MongoHelper.MarkStart(mongoHost, mongoPort);
 
             return base.OnStart();
