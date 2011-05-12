@@ -33,7 +33,14 @@ namespace MongoTestWebApp.Controllers
             var status = "Role Not Started";
             if (mongodEndpoint != null)
             {
-                status = MongoHelper.GetStatusMessage(mongodEndpoint.Address.ToString(), mongodEndpoint.Port);
+                try
+                {
+                    status = MongoHelper.GetStatusMessage(mongodEndpoint.Address.ToString(), mongodEndpoint.Port);
+                }
+                catch (Exception e)
+                {
+                    status = e.Message;
+                }
             }
             return status;
         }

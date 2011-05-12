@@ -26,24 +26,25 @@
         private const string MongoLogFileName = "mongod.log";
         private const string MongodCommandLine = "--dbpath {0} --port {1} --journal --nohttpinterface ";
 
-        private static CloudDrive MongoDrive = null;
+
+        private static CloudDrive mongoDrive = null;
         private static string mongoHost;
         private static int mongoPort;
 
         public override void Run()
         {
-            // This is a sample worker implementation. Replace with your logic.
-            Trace.WriteLine("MongoWorkerRole entry point called", "Information");
+            Trace.TraceInformation("MongoWorkerRole entry point called");
 
             while (true)
             {
                 Thread.Sleep(10000);
-                Trace.WriteLine("Working", "Information");
+                Trace.TraceInformation("Working");
             }
         }
 
         public override bool OnStart()
         {
+            Trace.TraceInformation("MongoWorkerRole onstart called");
             // Set the maximum number of concurrent connections 
             ServicePointManager.DefaultConnectionLimit = 12;
             CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) =>
@@ -51,44 +52,65 @@
                 configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
             });
             SetHostAndPort();
-            StartMongo();
-            // wait for mongo to start
-            Thread.Sleep(75000);
-            MongoHelper.MarkStart(mongoHost, mongoPort);
+            Trace.TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
+            StartMongoD();
 
+            try
+            {
+                MongoHelper.MarkStart(mongoHost, mongoPort);
+            }
+            catch (Exception e)
+            {
+                Trace.TraceWarning("In run mongod connect exception");
+                Trace.TraceWarning(e.Message);
+                Trace.TraceWarning(e.StackTrace);
+            }
             return base.OnStart();
         }
 
         public override void OnStop()
         {
-            MongoHelper.ShutdownMongo(mongoHost, mongoPort);
-            // sleep for 15 seconds to allow for shutdown before unmount
-            Thread.Sleep(15000);
+            Trace.TraceInformation("MongoWorkerRole onstop called");
             try
             {
-                MongoDrive.Unmount();
+                MongoHelper.ShutdownMongo(mongoHost, mongoPort);
+                // sleep for 15 seconds to allow for shutdown before unmount
+                Thread.Sleep(15000);
             }
-            catch 
-            { 
+            catch (Exception e)
+            {
                 //Ignore exceptions caught on unmount
+                Trace.TraceWarning("Exception in onstop - mongo shutdown");
+                Trace.TraceWarning(e.Message);
+                Trace.TraceWarning(e.StackTrace);
+            }
+            try
+            {
+                mongoDrive.Unmount();
+            }
+            catch (Exception e)
+            {
+                //Ignore exceptions caught on unmount
+                Trace.TraceWarning("Exception in onstop - unmount");
+                Trace.TraceWarning(e.Message);
+                Trace.TraceWarning(e.StackTrace);
             }
             base.OnStop();
         }
 
-        private void StartMongo()
+        private void StartMongoD()
         {
             var mongoAppRoot = Path.Combine(
                 Environment.GetEnvironmentVariable("RoleRoot"),
                 MongoBinaryFolder);
 
             var blobPath = GetBlobPath();
-            var logFile = GetMongoLogFile();
 
             var cmdline = String.Format(MongodCommandLine,
                 blobPath,
                 mongoPort);
             Process mongodProcess;
-
+            Trace.TraceInformation(string.Format("Launching mongo with cmdline {0}", cmdline));
             // launch mongo
             try
             {
@@ -115,59 +137,75 @@
         {
             var instanceName = RoleEnvironment.CurrentRoleInstance.Id;
             var localStorage =  RoleEnvironment.GetLocalResource(MongoLocalDataDir);
+
+            Trace.TraceInformation("Initialize cache");
             CloudDrive.InitializeCache(localStorage.RootPath.TrimEnd('\\'), 
                 localStorage.MaximumSizeInMegabytes);
 
             var storageAccount = CloudStorageAccount.FromConfigurationSetting(MongoCloudDataDir);
             var blobClient = storageAccount.CreateCloudBlobClient();
+
+            Trace.TraceInformation("Get container");
+            // this should be the name of your replset
             var driveContainer = blobClient.GetContainerReference(MongoBlobContainerName);
 
             // create blob container (it has to exist before creating the cloud drive)
-            try { driveContainer.CreateIfNotExist(); }
-            catch { }
+            try 
+            { 
+                driveContainer.CreateIfNotExist(); 
+            }
+            catch (Exception e)
+            {
+                Trace.TraceInformation("Exception when creating container");
+                Trace.TraceInformation(e.Message);
+                Trace.TraceInformation(e.StackTrace);
+            }
 
-            // get the url to the vhd page blob we'll be using
-            // var vhdName = String.Format("{0}.vhd", instanceName);
-            var mongoBlob = blobClient.GetContainerReference(MongoBlobContainerName).GetPageBlobReference(MongoBlobName).Uri.ToString();
+            var mongoBlobUri = blobClient.GetContainerReference(MongoBlobContainerName).GetPageBlobReference(MongoBlobName).Uri.ToString();
+            Trace.TraceInformation(string.Format("Blob uri obtained {0}", mongoBlobUri));
 
             // create the cloud drive
-            MongoDrive = storageAccount.CreateCloudDrive(mongoBlob);
+            mongoDrive = storageAccount.CreateCloudDrive(mongoBlobUri);
             try
             {
-                MongoDrive.Create(localStorage.MaximumSizeInMegabytes);
+                mongoDrive.Create(localStorage.MaximumSizeInMegabytes);
             }
-            catch
+            catch (Exception e)
             {
                 // exception is thrown if all is well but the drive already exists
+                Trace.TraceInformation("Exception when creating cloud drive. safe to ignore");
+                Trace.TraceInformation(e.Message);
+                Trace.TraceInformation(e.StackTrace);
+
             }
 
             // mount the drive and get the root path of the drive it's mounted as
             try
             {
-                var driveLetter = MongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
+                var driveLetter = mongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
                     DriveMountOptions.Force);
                 Trace.TraceInformation("Write lock acquired on azure drive, mounted as {0}", 
                     driveLetter);
                 return driveLetter;
                 // return localStorage.RootPath;
             }
-            catch 
+            catch (Exception e)
             {
-
-                Trace.TraceInformation("could not acquire blob lock.");
-                return localStorage.RootPath;
+                Trace.TraceWarning("could not acquire blob lock.");
+                Trace.TraceWarning(e.Message);
+                Trace.TraceWarning(e.StackTrace);
+                throw;
             }
     
         }
 
-        private string GetMongoLogFile()
-        {
-            var logDir = RoleEnvironment.GetLocalResource(MongoLocalLogDir);
-            var logfile = Path.Combine(logDir.RootPath, MongoLogFileName);
-            var file = new FileStream(logfile, FileMode.Append);
-            return logfile;
-        }
-
+        //private string GetMongoLogFile()
+        //{
+        //    var logDiwr = RoleEnvironment.GetLocalResource(MongoLocalLogDir);
+        //    var logfile = Path.Combine(logDir.RootPath, MongoLogFileName);
+        //    var file = new FileStream(logfile, FileMode.Append);
+        //    return logfile;
+        //}
 
         private static void SetHostAndPort()
         {

@@ -9,6 +9,7 @@
     using MongoDB.Bson;
     using MongoDB.Driver;
     using MongoDB.Driver.Builders;
+    using MongoDB.Bson.Serialization.Attributes;
 
     public class MongoHelper
     {
@@ -31,12 +32,6 @@
         {
             var server = MongoServer.Create(GetMongoConnectionString(host, port));
 
-            if (server == null)
-            {
-                var errorMessage = "Unable to connect to mongo: Mongo server is null";
-                Trace.TraceError(errorMessage);
-                throw new ApplicationException(errorMessage);
-            }
             if (server.State == MongoServerState.Disconnected)
             {
                 try
@@ -65,6 +60,7 @@
             azureTable.Insert(startEntry);
         }
 
+        [BsonIgnoreExtraElements]
         public class MongoStartEntry
         {
             public string Host { get; set; }
@@ -96,16 +92,10 @@
         {
             var server = GetMongoServer(mongoHost, mongoPort);
             var azureDb = server.GetDatabase(MongoAzureSystemDatabase);
-            // var azureTable = azureDb.GetCollection<MongoStartEntry>(MongoAzureSystemTable);
-            // var status = azureTable.FindOneAs<MongoStartEntry>();
-            var azureTable = azureDb.GetCollection(MongoAzureSystemTable);
-            var statusDocument = azureTable.FindOne();
-            var status = new MongoStartEntry()
-            {
-                Host = statusDocument.GetValue("Host").AsString,
-                Port = statusDocument.GetValue("Port").AsInt32,
-                StartTime = statusDocument.GetValue("StartTime").AsDateTime
-            };
+            var azureTable = azureDb.GetCollection<MongoStartEntry>(MongoAzureSystemTable);
+            var sortBy = SortBy.Descending("_id");
+            var cursor = azureTable.Find(Query.Null).SetSortOrder(sortBy).SetLimit(1);
+            var status = cursor.First<MongoStartEntry>();
             return status.ToString();
         }
     }

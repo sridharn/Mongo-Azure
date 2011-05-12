@@ -4,11 +4,12 @@
     <Imports>
     </Imports>
     <LocalResources>
-      <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="2200" />
-      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="20" />
+      <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="100" />
+      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="100" />
     </LocalResources>
     <ConfigurationSettings>
       <Setting name="MongoDBDataDir" />
+      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
     </ConfigurationSettings>
     <Endpoints>
       <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />
@@ -18,12 +19,12 @@
     <Sites>
       <Site name="Web">
         <Bindings>
-          <Binding name="Endpoint1" endpointName="Endpoint1" />
+          <Binding name="Endpoint1" endpointName="WebPort" />
         </Bindings>
       </Site>
     </Sites>
     <Endpoints>
-      <InputEndpoint name="Endpoint1" protocol="http" port="8080" />
+      <InputEndpoint name="WebPort" protocol="http" port="8080" />
     </Endpoints>
     <Imports>
       <Import moduleName="Diagnostics" />
