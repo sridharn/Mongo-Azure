@@ -1,21 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ServiceDefinition name="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
-  <WorkerRole name="Mongo">
+  <WorkerRole name="MongoWorkerRole" vmsize="ExtraSmall">
     <Imports>
     </Imports>
     <LocalResources>
       <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="100" />
       <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="100" />
+      <LocalStorage name="MongoTraceDir" cleanOnRoleRecycle="false" sizeInMB="20" />
     </LocalResources>
     <ConfigurationSettings>
       <Setting name="MongoDBDataDir" />
-      <Setting name="Microsoft.WindowsAzure.Plugins.Diagnostics.ConnectionString" />
+      <Setting name="DiagnosticsConnectionString" />
+      <Setting name="MongoDBLogDir" />
     </ConfigurationSettings>
     <Endpoints>
       <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />
     </Endpoints>
   </WorkerRole>
-  <WebRole name="MongoTestWebApp">
+  <WebRole name="MongoTestWebAppRole" vmsize="ExtraSmall">
     <Sites>
       <Site name="Web">
         <Bindings>
@@ -27,7 +29,6 @@
       <InputEndpoint name="WebPort" protocol="http" port="8080" />
     </Endpoints>
     <Imports>
-      <Import moduleName="Diagnostics" />
     </Imports>
   </WebRole>
 </ServiceDefinition>

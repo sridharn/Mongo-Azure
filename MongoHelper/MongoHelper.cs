@@ -18,7 +18,7 @@
         private const string MongoAzureSystemTable = "system";
 
         public const string MongodPortKey = "MongodPort";
-        public const string MongoRoleName = "Mongo";
+        public const string MongoRoleName = "MongoWorkerRole";
 
         public static string GetMongoConnectionString(string host, int port)
         {

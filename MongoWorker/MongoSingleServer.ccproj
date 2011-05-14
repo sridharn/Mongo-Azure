@@ -10,7 +10,7 @@
     <RootNamespace>MongoWorker</RootNamespace>
     <AssemblyName>MongoWorker</AssemblyName>
     <StartDevelopmentStorage>True</StartDevelopmentStorage>
-    <Name>MongoRole</Name>
+    <Name>MongoSingleServer</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -35,19 +35,19 @@
     <ServiceConfiguration Include="ServiceConfiguration.cscfg" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MongoTestWebApp\MongoTestWebApp.csproj">
-      <Name>MongoTestWebApp</Name>
+    <ProjectReference Include="..\MongoTestWebApp\MongoTestWebAppRole.csproj">
+      <Name>MongoTestWebAppRole</Name>
       <Project>{f026dfa9-81c4-414f-93c3-af417531d46a}</Project>
       <Private>True</Private>
       <RoleType>Web</RoleType>
-      <RoleName>MongoTestWebApp</RoleName>
+      <RoleName>MongoTestWebAppRole</RoleName>
     </ProjectReference>
-    <ProjectReference Include="..\MongoWorkerRole\Mongo.csproj">
-      <Name>Mongo</Name>
+    <ProjectReference Include="..\MongoWorkerRole\MongoWorkerRole.csproj">
+      <Name>MongoWorkerRole</Name>
       <Project>{7a0d1835-2290-44a3-938e-58407ffa543c}</Project>
       <Private>True</Private>
       <RoleType>Worker</RoleType>
-      <RoleName>Mongo</RoleName>
+      <RoleName>MongoWorkerRole</RoleName>
     </ProjectReference>
   </ItemGroup>
   <!-- Import the target files for this project template -->
