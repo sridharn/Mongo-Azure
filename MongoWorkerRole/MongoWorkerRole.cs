@@ -37,6 +37,7 @@
         private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface ";
         private const int MaxRetryCount = 5;
         private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
+        private const int InitialSleep = 30 * 1000; // 30 seconds
 
         private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromSeconds(3);
 
@@ -57,45 +58,60 @@
 
         public override void Run()
         {
-            TraceInformation("MongoWorkerRole entry point called");
+            TraceInformation("MongoWorkerRole run method called");
             try
             {
                 int retryCount = 0;
-                mongodProcess.WaitForExit();
+                try
+                {
+                    mongodProcess.WaitForExit();
+                }
+                catch (Exception e)
+                {
+                    TraceWarning("exception when waiting on mongod process");
+                    TraceWarning(e.Message);
+                    TraceWarning(e.StackTrace);
+                }
+                // only for testing
+                while (true) 
+                {
+                    Thread.Sleep(SleepBetweenRetry);
+                }
                 // if here mongod has exited try restart.
                 while (retryCount < MaxRetryCount)
                 {
-                    // Thread.Sleep(SleepBetweenRetry);
-                    Thread.Sleep(5);
+                    Thread.Sleep(SleepBetweenRetry);
+                    // Thread.Sleep(5);
                     retryCount++;
                 }
             }
             catch
             {
-                // Thread.Sleep(30 * 60 * 1000);
-                Thread.Sleep(5);
+                Thread.Sleep(30 * 60 * 1000);
+                // Thread.Sleep(5);
             }
         }
 
         public override bool OnStart()
         {
-            InitializeDiagnostics();
-
-            TraceInformation("MongoWorkerRole onstart called");
-            // Set the maximum number of concurrent connections 
-            ServicePointManager.DefaultConnectionLimit = 12;
-            CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) =>
-            {
-                configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
-            });
-
-            SetHostAndPort();
-            TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
-
             try
             {
+                InitializeDiagnostics();
+
+                TraceInformation("MongoWorkerRole onstart called");
+                // Set the maximum number of concurrent connections 
+                ServicePointManager.DefaultConnectionLimit = 12;
+                CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) =>
+                {
+                    configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
+                });
+
+                SetHostAndPort();
+                TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
+
                 // this try block should not be on the final code
                 StartMongoD();
+                Thread.Sleep(InitialSleep);
 
                 try
                 {
@@ -163,10 +179,11 @@
         private void StartMongoD()
         {
             var mongoAppRoot = Path.Combine(
-                Environment.GetEnvironmentVariable("RoleRoot"),
+                Environment.GetEnvironmentVariable("RoleRoot")+@"\",
                 MongoBinaryFolder);
+            var mongodPath = Path.Combine(mongoAppRoot, @"mongod.exe");
 
-            var blobPath = GetDBPath();
+            var blobPath = GetMongoDataDirectory();
 
             var logFile = GetLogFile();
 
@@ -174,14 +191,14 @@
                 blobPath,
                 mongoPort,
                 logFile);
-            TraceInformation(string.Format("Launching mongo with cmdline {0}", cmdline));
+            TraceInformation(string.Format("Launching mongod as {0} {1}", mongodPath, cmdline));
 
             // launch mongo
             try
             {
                 mongodProcess = new Process()
                 {
-                    StartInfo = new ProcessStartInfo(Path.Combine(mongoAppRoot, @"mongod.exe"), cmdline)
+                    StartInfo = new ProcessStartInfo(mongodPath, cmdline)
                     {
                         UseShellExecute = false,
                         WorkingDirectory = mongoAppRoot,
@@ -198,7 +215,7 @@
             }
         }
 
-        private string GetDBPath()
+        private string GetMongoDataDirectory()
         {
             TraceInformation("Getting db path");
             var path = GetMountedPathFromBlob(
@@ -208,8 +225,10 @@
                 MongodDataBlobName,
                 out mongoDataDrive
                 );
-            TraceInformation(string.Format("Obtained data path as {0}", path));
-            return path;
+            TraceInformation(string.Format("Obtained data drive as {0}", path));
+            var dir = Directory.CreateDirectory(Path.Combine(path, @"data"));
+            TraceInformation(string.Format("Data directory is {0}", dir.FullName));
+            return dir.FullName;
         }
 
         private string GetLogFile()
@@ -222,8 +241,9 @@
                 MongodLogBlobName,
                 out mongoLogDrive
                 );
-            var logfile = Path.Combine(path, MongoLogFileName);
-            TraceInformation(string.Format("Obtained log file as {0}", logfile));
+            TraceInformation(string.Format("Obtained log root directory as {0}", path));
+            var dir = Directory.CreateDirectory(Path.Combine(path, @"log"));
+            var logfile = Path.Combine(dir.FullName+@"\", MongoLogFileName);
             return logfile;
         }
 
@@ -316,6 +336,7 @@
             var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
             var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
             traceWriter = new StreamWriter(fileName);
+            TraceInformation(string.Format("Local log file is {0}", fileName));
         }
 
         private void ShutdownDiagnostics()

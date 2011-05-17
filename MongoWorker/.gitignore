@@ -3,4 +3,5 @@ bin
 obj
 *.user
 *.suo
+*.pfx
 ServiceDefinition.build.csdef

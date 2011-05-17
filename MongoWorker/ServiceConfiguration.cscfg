@@ -10,7 +10,5 @@
   </Role>
   <Role name="MongoTestWebAppRole">
     <Instances count="1" />
-    <ConfigurationSettings>
-    </ConfigurationSettings>
   </Role>
 </ServiceConfiguration>

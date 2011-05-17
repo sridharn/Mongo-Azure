@@ -1,8 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ServiceDefinition name="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
   <WorkerRole name="MongoWorkerRole" vmsize="ExtraSmall">
-    <Imports>
-    </Imports>
     <LocalResources>
       <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="100" />
       <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="100" />
@@ -28,7 +26,5 @@
     <Endpoints>
       <InputEndpoint name="WebPort" protocol="http" port="8080" />
     </Endpoints>
-    <Imports>
-    </Imports>
   </WebRole>
 </ServiceDefinition>
