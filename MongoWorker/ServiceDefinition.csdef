@@ -2,9 +2,9 @@
 <ServiceDefinition name="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
   <WorkerRole name="MongoWorkerRole" vmsize="ExtraSmall">
     <LocalResources>
-      <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="100" />
-      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="100" />
-      <LocalStorage name="MongoTraceDir" cleanOnRoleRecycle="false" sizeInMB="20" />
+      <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
+      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
+      <LocalStorage name="MongoTraceDir" cleanOnRoleRecycle="false" sizeInMB="100" />
     </LocalResources>
     <ConfigurationSettings>
       <Setting name="MongoDBDataDir" />

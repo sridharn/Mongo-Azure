@@ -8,8 +8,8 @@
     <ProjectGuid>{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MongoDB.MongoHelper</RootNamespace>
-    <AssemblyName>MongoDB.MongoHelper</AssemblyName>
+    <RootNamespace>MongoDB.Azure</RootNamespace>
+    <AssemblyName>MongoDB.Azure</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -50,9 +50,6 @@
   <ItemGroup>
     <Compile Include="MongoHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

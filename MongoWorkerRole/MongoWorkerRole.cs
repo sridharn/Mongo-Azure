@@ -12,7 +12,7 @@
     using Microsoft.WindowsAzure.ServiceRuntime;
     using Microsoft.WindowsAzure.StorageClient;
 
-    using MongoDB.MongoHelper;
+    using MongoDB.Azure;
     using Microsoft.WindowsAzure.Diagnostics;
 
     public class MongoWorkerRole : RoleEntryPoint
@@ -38,6 +38,8 @@
         private const int MaxRetryCount = 5;
         private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
         private const int InitialSleep = 30 * 1000; // 30 seconds
+        private const int MaxDBDriveSize = 5 * 1024; // in MB
+        private const int MaxLogDriveSize = 1024; // in MB
 
         private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromSeconds(3);
 
@@ -61,75 +63,33 @@
             TraceInformation("MongoWorkerRole run method called");
             try
             {
-                int retryCount = 0;
-                try
-                {
-                    mongodProcess.WaitForExit();
-                }
-                catch (Exception e)
-                {
-                    TraceWarning("exception when waiting on mongod process");
-                    TraceWarning(e.Message);
-                    TraceWarning(e.StackTrace);
-                }
-                // only for testing
-                while (true) 
-                {
-                    Thread.Sleep(SleepBetweenRetry);
-                }
-                // if here mongod has exited try restart.
-                while (retryCount < MaxRetryCount)
-                {
-                    Thread.Sleep(SleepBetweenRetry);
-                    // Thread.Sleep(5);
-                    retryCount++;
-                }
+                mongodProcess.WaitForExit();
             }
-            catch
+            catch (Exception e)
             {
-                Thread.Sleep(30 * 60 * 1000);
-                // Thread.Sleep(5);
+                TraceWarning("exception when waiting on mongod process");
+                TraceWarning(e.Message);
+                TraceWarning(e.StackTrace);
             }
         }
 
         public override bool OnStart()
         {
-            try
+            InitializeDiagnostics();
+
+            TraceInformation("MongoWorkerRole onstart called");
+            // Set the maximum number of concurrent connections 
+            ServicePointManager.DefaultConnectionLimit = 12;
+            CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) =>
             {
-                InitializeDiagnostics();
+                configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
+            });
 
-                TraceInformation("MongoWorkerRole onstart called");
-                // Set the maximum number of concurrent connections 
-                ServicePointManager.DefaultConnectionLimit = 12;
-                CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) =>
-                {
-                    configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
-                });
+            SetHostAndPort();
+            TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
 
-                SetHostAndPort();
-                TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
-
-                // this try block should not be on the final code
-                StartMongoD();
-                Thread.Sleep(InitialSleep);
-
-                try
-                {
-                    MongoHelper.MarkStart(mongoHost, mongoPort);
-                }
-                catch (Exception e)
-                {
-                    TraceWarning("In run mongod connect exception");
-                    TraceWarning(e.Message);
-                    TraceWarning(e.StackTrace);
-                }
-            }
-            catch (Exception e)
-            {
-                TraceWarning("StartMongoD exception");
-                TraceWarning(e.Message);
-                TraceWarning(e.StackTrace);
-            }
+            // this try block should not be on the final code
+            StartMongoD();
             return base.OnStart();
         }
 
@@ -223,6 +183,7 @@
                 MongoCloudDataDir,
                 MongodDataBlobContainerName,
                 MongodDataBlobName,
+                MaxDBDriveSize,
                 out mongoDataDrive
                 );
             TraceInformation(string.Format("Obtained data drive as {0}", path));
@@ -239,6 +200,7 @@
                 MongoCloudLogDir,
                 MongodLogBlobContainerName,
                 MongodLogBlobName,
+                MaxLogDriveSize,
                 out mongoLogDrive
                 );
             TraceInformation(string.Format("Obtained log root directory as {0}", path));
@@ -259,6 +221,7 @@
             string cloudDir,
             string containerName,
             string blobName,
+            int driveSize,
             out CloudDrive mongoDrive)
         {
             var localStorage = RoleEnvironment.GetLocalResource(localCachePath);
@@ -293,7 +256,7 @@
             mongoDrive = storageAccount.CreateCloudDrive(mongoBlobUri);
             try
             {
-                mongoDrive.Create(localStorage.MaximumSizeInMegabytes);
+                mongoDrive.Create(driveSize);
             }
             catch (Exception e)
             {

@@ -5,7 +5,7 @@ Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "MongoSingleServer", "MongoW
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoWorkerRole", "MongoWorkerRole\MongoWorkerRole.csproj", "{7A0D1835-2290-44A3-938E-58407FFA543C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoHelper", "MongoHelper\MongoHelper.csproj", "{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoAzure", "MongoAzure\MongoAzure.csproj", "{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoTestWebAppRole", "MongoTestWebApp\MongoTestWebAppRole.csproj", "{F026DFA9-81C4-414F-93C3-AF417531D46A}"
 EndProject

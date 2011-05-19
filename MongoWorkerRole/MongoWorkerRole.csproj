@@ -72,9 +72,9 @@
     <None Include="app.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MongoHelper\MongoHelper.csproj">
+    <ProjectReference Include="..\MongoAzure\MongoAzure.csproj">
       <Project>{913AB5AF-C632-41E0-A9FE-AA9679A3BB41}</Project>
-      <Name>MongoHelper</Name>
+      <Name>MongoAzure</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

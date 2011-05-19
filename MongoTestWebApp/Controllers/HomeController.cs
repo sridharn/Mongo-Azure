@@ -6,7 +6,7 @@ using System.Web.Mvc;
 
 using Microsoft.WindowsAzure.ServiceRuntime;
 
-using MongoDB.MongoHelper;
+using MongoDB.Azure;
 
 namespace MongoTestWebApp.Controllers
 {

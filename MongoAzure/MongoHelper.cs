@@ -1,4 +1,4 @@
-﻿namespace MongoDB.MongoHelper
+﻿namespace MongoDB.Azure
 {
     using System;
     using System.Collections.Generic;
