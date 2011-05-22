@@ -11,6 +11,8 @@
     using MongoDB.Driver.Builders;
     using MongoDB.Bson.Serialization.Attributes;
 
+    using Microsoft.WindowsAzure.ServiceRuntime;
+
     public class MongoHelper
     {
 
@@ -31,6 +33,35 @@
         public static MongoServer GetMongoServer(string host, int port)
         {
             var server = MongoServer.Create(GetMongoConnectionString(host, port));
+
+            if (server.State == MongoServerState.Disconnected)
+            {
+                try
+                {
+                    server.Connect(TimeSpan.FromSeconds(2));
+                }
+                catch (Exception e)
+                {
+                    throw new ApplicationException("Could not connect to mongo: " + e.Message);
+                }
+            }
+            return server;
+        }
+
+        public static string GetMongoConnectionString()
+        {
+            var mongodEndpoint =
+                RoleEnvironment.Roles[MongoHelper.MongoRoleName].Instances[0].InstanceEndpoints[MongoHelper.MongodPortKey].IPEndpoint;
+         
+            var connectionString = new StringBuilder();
+            connectionString.Append("mongodb://");
+            connectionString.Append(string.Format("{0}:{1}", mongodEndpoint.Address.ToString(), mongodEndpoint.Port));
+            return connectionString.ToString();
+        }
+
+        public static MongoServer GetMongoServer()
+        {
+            var server = MongoServer.Create(GetMongoConnectionString());
 
             if (server.State == MongoServerState.Disconnected)
             {

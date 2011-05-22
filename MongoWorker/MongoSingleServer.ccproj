@@ -35,6 +35,20 @@
     <ServiceConfiguration Include="ServiceConfiguration.cscfg" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\GuestBook_WebRole\GuestBook_WebRole.csproj">
+      <Name>GuestBook_WebRole</Name>
+      <Project>{07a55b15-79db-4dc4-9e8d-ab76eebea5e2}</Project>
+      <Private>True</Private>
+      <RoleType>Web</RoleType>
+      <RoleName>GuestBook_WebRole</RoleName>
+    </ProjectReference>
+    <ProjectReference Include="..\Guestbook_WorkerRole\Guestbook_WorkerRole.vbproj">
+      <Name>Guestbook_WorkerRole</Name>
+      <Project>{fc4a88e1-3f24-44fd-9a4d-0258aae23214}</Project>
+      <Private>True</Private>
+      <RoleType>Worker</RoleType>
+      <RoleName>Guestbook_WorkerRole</RoleName>
+    </ProjectReference>
     <ProjectReference Include="..\MongoTestWebApp\MongoTestWebAppRole.csproj">
       <Name>MongoTestWebAppRole</Name>
       <Project>{f026dfa9-81c4-414f-93c3-af417531d46a}</Project>
