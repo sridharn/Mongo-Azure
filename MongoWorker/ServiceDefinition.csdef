@@ -15,18 +15,6 @@
       <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />
     </Endpoints>
   </WorkerRole>
-  <WebRole name="MongoTestWebAppRole" vmsize="ExtraSmall">
-    <Sites>
-      <Site name="Web">
-        <Bindings>
-          <Binding name="Endpoint1" endpointName="WebPort" />
-        </Bindings>
-      </Site>
-    </Sites>
-    <Endpoints>
-      <InputEndpoint name="WebPort" protocol="http" port="8080" />
-    </Endpoints>
-  </WebRole>
   <WebRole name="GuestBook_WebRole">
     <Sites>
       <Site name="Web">

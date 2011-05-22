@@ -8,9 +8,6 @@
       <Setting name="MongoDBLogDir" value="UseDevelopmentStorage=true" />
     </ConfigurationSettings>
   </Role>
-  <Role name="MongoTestWebAppRole">
-    <Instances count="1" />
-  </Role>
   <Role name="GuestBook_WebRole">
     <Instances count="1" />
     <ConfigurationSettings>

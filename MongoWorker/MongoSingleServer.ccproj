@@ -49,13 +49,6 @@
       <RoleType>Worker</RoleType>
       <RoleName>Guestbook_WorkerRole</RoleName>
     </ProjectReference>
-    <ProjectReference Include="..\MongoTestWebApp\MongoTestWebAppRole.csproj">
-      <Name>MongoTestWebAppRole</Name>
-      <Project>{f026dfa9-81c4-414f-93c3-af417531d46a}</Project>
-      <Private>True</Private>
-      <RoleType>Web</RoleType>
-      <RoleName>MongoTestWebAppRole</RoleName>
-    </ProjectReference>
     <ProjectReference Include="..\MongoWorkerRole\MongoWorkerRole.csproj">
       <Name>MongoWorkerRole</Name>
       <Project>{7a0d1835-2290-44a3-938e-58407ffa543c}</Project>
