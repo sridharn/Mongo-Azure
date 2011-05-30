@@ -35,26 +35,19 @@
     <ServiceConfiguration Include="ServiceConfiguration.cscfg" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GuestBook_WebRole\GuestBook_WebRole.csproj">
-      <Name>GuestBook_WebRole</Name>
-      <Project>{07a55b15-79db-4dc4-9e8d-ab76eebea5e2}</Project>
-      <Private>True</Private>
-      <RoleType>Web</RoleType>
-      <RoleName>GuestBook_WebRole</RoleName>
-    </ProjectReference>
-    <ProjectReference Include="..\Guestbook_WorkerRole\Guestbook_WorkerRole.vbproj">
-      <Name>Guestbook_WorkerRole</Name>
-      <Project>{fc4a88e1-3f24-44fd-9a4d-0258aae23214}</Project>
-      <Private>True</Private>
-      <RoleType>Worker</RoleType>
-      <RoleName>Guestbook_WorkerRole</RoleName>
-    </ProjectReference>
     <ProjectReference Include="..\MongoWorkerRole\MongoWorkerRole.csproj">
       <Name>MongoWorkerRole</Name>
       <Project>{7a0d1835-2290-44a3-938e-58407ffa543c}</Project>
       <Private>True</Private>
       <RoleType>Worker</RoleType>
       <RoleName>MongoWorkerRole</RoleName>
+    </ProjectReference>
+    <ProjectReference Include="..\MvcMovie\MvcMovie.csproj">
+      <Name>MvcMovie</Name>
+      <Project>{c0a91ac1-1193-49af-8713-6e6f06c02448}</Project>
+      <Private>True</Private>
+      <RoleType>Web</RoleType>
+      <RoleName>MvcMovie</RoleName>
     </ProjectReference>
   </ItemGroup>
   <!-- Import the target files for this project template -->

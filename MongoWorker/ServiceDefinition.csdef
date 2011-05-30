@@ -15,7 +15,7 @@
       <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />
     </Endpoints>
   </WorkerRole>
-  <WebRole name="GuestBook_WebRole">
+  <WebRole name="MvcMovie" vmsize="ExtraSmall">
     <Sites>
       <Site name="Web">
         <Bindings>
@@ -29,16 +29,5 @@
     <Imports>
       <Import moduleName="Diagnostics" />
     </Imports>
-    <ConfigurationSettings>
-      <Setting name="DataConnectionString" />
-    </ConfigurationSettings>
   </WebRole>
-  <WorkerRole name="Guestbook_WorkerRole">
-    <Imports>
-      <Import moduleName="Diagnostics" />
-    </Imports>
-    <ConfigurationSettings>
-      <Setting name="DataConnectionString" />
-    </ConfigurationSettings>
-  </WorkerRole>
 </ServiceDefinition>

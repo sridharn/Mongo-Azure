@@ -34,14 +34,16 @@
         
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
-        private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface ";
+        // private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface -vvvvv ";
+        private const string MongodCommandLine = "--dbpath {0} --port {1} --journal --nohttpinterface -vvvvv ";
         private const int MaxRetryCount = 5;
         private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
         private const int InitialSleep = 30 * 1000; // 30 seconds
         private const int MaxDBDriveSize = 5 * 1024; // in MB
         private const int MaxLogDriveSize = 1024; // in MB
 
-        private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromSeconds(3);
+        private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromMinutes(30);
+        private readonly TimeSpan PerfCounterTransferInterval = TimeSpan.FromMinutes(15);
 
         private const string TraceLogFileDir = "TraceLogFileDir";
         private const string MongodDataBlobCacheDir = "MongodDataBlobCacheDir";
@@ -99,7 +101,9 @@
             try
             {
                 // should we instead call Process.stop?
+                TraceInformation("Shutdown called on mongod");
                 MongoHelper.ShutdownMongo(mongoHost, mongoPort);
+                TraceInformation("Shutdown completed on mongod");
                 // sleep for 15 seconds to allow for shutdown before unmount
                 Thread.Sleep(15000);
             }
@@ -112,7 +116,9 @@
             }
             try
             {
+                TraceInformation("Unmount called on data drive");
                 mongoDataDrive.Unmount();
+                TraceInformation("Unmount completed on data drive");
             }
             catch (Exception e)
             {
@@ -123,7 +129,9 @@
             }
             try
             {
+                TraceInformation("Unmount called on log drive");
                 mongoLogDrive.Unmount();
+                TraceInformation("Unmount completed on log drive");
             }
             catch (Exception e)
             {
@@ -132,6 +140,7 @@
                 TraceWarning(e.Message);
                 TraceWarning(e.StackTrace);
             }
+            TraceInformation("Calling diagnostics shutdown");
             ShutdownDiagnostics();
             base.OnStop();
         }
@@ -149,8 +158,8 @@
 
             var cmdline = String.Format(MongodCommandLine,
                 blobPath,
-                mongoPort,
-                logFile);
+                mongoPort); //,
+                //logFile);
             TraceInformation(string.Format("Launching mongod as {0} {1}", mongodPath, cmdline));
 
             // launch mongo
@@ -293,13 +302,29 @@
         {
             var diagObj = DiagnosticMonitor.GetDefaultInitialConfiguration();
             diagObj.Logs.ScheduledTransferPeriod = DiagnosticTransferInterval;
+            AddPerfCounters(diagObj);
+            diagObj.PerformanceCounters.ScheduledTransferPeriod = PerfCounterTransferInterval;
             diagObj.Logs.ScheduledTransferLogLevelFilter = LogLevel.Verbose;
             DiagnosticMonitor.Start("DiagnosticsConnectionString", diagObj);
 
-            var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
-            var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
+            // var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
+            // var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
+            var fileName = Path.GetTempFileName();
             traceWriter = new StreamWriter(fileName);
             TraceInformation(string.Format("Local log file is {0}", fileName));
+        }
+
+        private void AddPerfCounters(DiagnosticMonitorConfiguration diagObj)
+        {
+            AddPerfCounter(diagObj, @"\Processor(*)\% Processor Time", 5);
+        }
+
+        private static void AddPerfCounter(DiagnosticMonitorConfiguration config, string name, double seconds)
+        {
+            var perfmon = new PerformanceCounterConfiguration();
+            perfmon.CounterSpecifier = name;
+            perfmon.SampleRate = System.TimeSpan.FromSeconds(seconds);
+            config.PerformanceCounters.DataSources.Add(perfmon);
         }
 
         private void ShutdownDiagnostics()
