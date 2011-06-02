@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ServiceDefinition name="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
-  <WorkerRole name="MongoWorkerRole" vmsize="ExtraSmall">
+  <WorkerRole name="MongoWorkerRole" vmsize="Small">
     <LocalResources>
       <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
       <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
@@ -15,7 +15,7 @@
       <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />
     </Endpoints>
   </WorkerRole>
-  <WebRole name="MvcMovie" vmsize="ExtraSmall">
+  <WebRole name="MvcMovie" vmsize="Small">
     <Sites>
       <Site name="Web">
         <Bindings>

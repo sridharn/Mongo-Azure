@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using System.Net;
     using System.Text;
 
     using MongoDB.Bson;
@@ -22,7 +23,7 @@
         public const string MongodPortKey = "MongodPort";
         public const string MongoRoleName = "MongoWorkerRole";
 
-        public static string GetMongoConnectionString(string host, int port)
+        private static string GetMongoConnectionString(string host, int port)
         {
             var connectionString = new StringBuilder();
             connectionString.Append("mongodb://");
@@ -30,33 +31,61 @@
             return connectionString.ToString();
         }
 
-        public static MongoServer GetMongoServer(string host, int port)
+        private static IPEndPoint GetMongoPort()
         {
-            var server = MongoServer.Create(GetMongoConnectionString(host, port));
+            // need to figure out how to check if the instance is actually up
+            var roleInstances =
+                RoleEnvironment.Roles[MongoHelper.MongoRoleName].Instances;
+            IPEndPoint mongodEndpoint = null;
+            foreach (var instance in roleInstances)
+            {
+                mongodEndpoint = instance.InstanceEndpoints[MongoHelper.MongodPortKey].IPEndpoint;
+                var isEndpointValid = CheckEndpoint(mongodEndpoint);
+                if (isEndpointValid)
+                {
+                    return mongodEndpoint;
+                }
+            }
+
+            throw new ApplicationException("Could not connect to mongo");
+        }
+
+        private static bool CheckEndpoint(IPEndPoint mongodEndpoint)
+        {
+            var valid = false;
+            var server = MongoServer.Create(GetMongoConnectionString(
+                mongodEndpoint.Address.ToString(),
+                mongodEndpoint.Port));
 
             if (server.State == MongoServerState.Disconnected)
             {
                 try
                 {
                     server.Connect(TimeSpan.FromSeconds(2));
+                    valid = true;
                 }
-                catch (Exception e)
+                catch 
                 {
-                    throw new ApplicationException("Could not connect to mongo: " + e.Message);
+                    valid = false;
                 }
             }
-            return server;
+            else
+            {
+                valid = true;
+            }
+            return valid;
         }
 
         public static string GetMongoConnectionString()
         {
-            var mongodEndpoint =
-                RoleEnvironment.Roles[MongoHelper.MongoRoleName].Instances[0].InstanceEndpoints[MongoHelper.MongodPortKey].IPEndpoint;
-         
-            var connectionString = new StringBuilder();
-            connectionString.Append("mongodb://");
-            connectionString.Append(string.Format("{0}:{1}", mongodEndpoint.Address.ToString(), mongodEndpoint.Port));
-            return connectionString.ToString();
+            var mongodEndpoint = GetMongoPort();
+            return GetMongoConnectionString(mongodEndpoint.Address.ToString(), mongodEndpoint.Port);
+        }
+
+        public static string GetLocalMongoConnectionString()
+        {
+            var mongodEndpoint = GetMongoPort();
+            return GetMongoConnectionString("127.0.0.1", mongodEndpoint.Port);
         }
 
         public static MongoServer GetMongoServer()
@@ -77,41 +106,31 @@
             return server;
         }
 
-        public static void MarkStart(string mongoHost, int mongoPort)
+        public static MongoServer GetLocalMongoServer()
         {
-            var server = GetMongoServer(mongoHost, mongoPort);
-            var startEntry = new MongoStartEntry()
-            {
-                Host = mongoHost,
-                Port = mongoPort,
-                StartTime = DateTime.UtcNow
-            };
-            var azureDb = server.GetDatabase(MongoAzureSystemDatabase);
-            var azureTable = azureDb.GetCollection<MongoStartEntry>(MongoAzureSystemTable);
-            azureTable.Insert(startEntry);
-        }
+            var server = MongoServer.Create(GetLocalMongoConnectionString());
 
-        [BsonIgnoreExtraElements]
-        public class MongoStartEntry
-        {
-            public string Host { get; set; }
-            public int Port { get; set; }
-            public DateTime StartTime { get; set; }
-            public override string ToString()
+            if (server.State == MongoServerState.Disconnected)
             {
-                return string.Format("Host={0} Port={1} Start={2}",
-                    Host,
-                    Port,
-                    StartTime.ToString());
+                try
+                {
+                    server.Connect(TimeSpan.FromSeconds(2));
+                }
+                catch (Exception e)
+                {
+                    throw new ApplicationException("Could not connect to mongo: " + e.Message);
+                }
             }
+            return server;
         }
 
-        public static void ShutdownMongo(string host, int port)
+        public static void ShutdownMongo()
         {
             try
             {
-                var server = GetMongoServer(host, port);
-                server.RunAdminCommand("shutdownServer");
+                var server = GetLocalMongoServer();
+                // server.Shutdown();
+                server.RunAdminCommand("shutdown");
             }
             catch 
             {
@@ -119,15 +138,5 @@
             }
         }
 
-        public static string GetStatusMessage(string mongoHost, int mongoPort)
-        {
-            var server = GetMongoServer(mongoHost, mongoPort);
-            var azureDb = server.GetDatabase(MongoAzureSystemDatabase);
-            var azureTable = azureDb.GetCollection<MongoStartEntry>(MongoAzureSystemTable);
-            var sortBy = SortBy.Descending("_id");
-            var cursor = azureTable.Find(Query.Null).SetSortOrder(sortBy).SetLimit(1);
-            var status = cursor.First<MongoStartEntry>();
-            return status.ToString();
-        }
     }
 }

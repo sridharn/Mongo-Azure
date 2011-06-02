@@ -34,13 +34,16 @@
         
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
-        // private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface -vvvvv ";
-        private const string MongodCommandLine = "--dbpath {0} --port {1} --journal --nohttpinterface -vvvvv ";
+        private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface -vvvvv ";
+        // private const string MongodCommandLine = "--dbpath {0} --port {1} --journal --nohttpinterface -vvvvv ";
         private const int MaxRetryCount = 5;
         private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
         private const int InitialSleep = 30 * 1000; // 30 seconds
-        private const int MaxDBDriveSize = 5 * 1024; // in MB
-        private const int MaxLogDriveSize = 1024; // in MB
+        //private const int MaxDBDriveSize = 5 * 1024; // in MB
+        //private const int MaxLogDriveSize = 1024; // in MB
+        private const int MaxDBDriveSize = 512; // in MB
+        private const int MaxLogDriveSize = 100; // in MB
+        private const int MountSleep = 30 * 1000; // 30 seconds;
 
         private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromMinutes(30);
         private readonly TimeSpan PerfCounterTransferInterval = TimeSpan.FromMinutes(15);
@@ -102,10 +105,8 @@
             {
                 // should we instead call Process.stop?
                 TraceInformation("Shutdown called on mongod");
-                MongoHelper.ShutdownMongo(mongoHost, mongoPort);
+                MongoHelper.ShutdownMongo();
                 TraceInformation("Shutdown completed on mongod");
-                // sleep for 15 seconds to allow for shutdown before unmount
-                Thread.Sleep(15000);
             }
             catch (Exception e)
             {
@@ -158,8 +159,8 @@
 
             var cmdline = String.Format(MongodCommandLine,
                 blobPath,
-                mongoPort); //,
-                //logFile);
+                mongoPort,
+                logFile);
             TraceInformation(string.Format("Launching mongod as {0} {1}", mongodPath, cmdline));
 
             // launch mongo
@@ -193,6 +194,7 @@
                 MongodDataBlobContainerName,
                 MongodDataBlobName,
                 MaxDBDriveSize,
+                true,
                 out mongoDataDrive
                 );
             TraceInformation(string.Format("Obtained data drive as {0}", path));
@@ -210,6 +212,7 @@
                 MongodLogBlobContainerName,
                 MongodLogBlobName,
                 MaxLogDriveSize,
+                false,
                 out mongoLogDrive
                 );
             TraceInformation(string.Format("Obtained log root directory as {0}", path));
@@ -231,6 +234,7 @@
             string containerName,
             string blobName,
             int driveSize,
+            bool waitOnMount,
             out CloudDrive mongoDrive)
         {
             var localStorage = RoleEnvironment.GetLocalResource(localCachePath);
@@ -277,25 +281,47 @@
             }
 
             // mount the drive and get the root path of the drive it's mounted as
-            try
+            if (!waitOnMount)
             {
-                var driveLetter = mongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
-                    DriveMountOptions.None);
-                //                    DriveMountOptions.Force);
-                TraceInformation(string.Format("Write lock acquired on azure drive, mounted as {0}",
-                    driveLetter));
-                return driveLetter;
-                // return Path.Combine(driveLetter, @"\");
-                // return localStorage.RootPath;
+                try
+                {
+                    TraceInformation(string.Format("Trying to mount blob as azure drive on {0}",
+                        RoleEnvironment.CurrentRoleInstance.Id));
+                    var driveLetter = mongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
+                        DriveMountOptions.None);
+                    TraceInformation(string.Format("Write lock acquired on azure drive, mounted as {0}, on role instance",
+                        driveLetter, RoleEnvironment.CurrentRoleInstance.Id));
+                    return driveLetter;
+                    // return Path.Combine(driveLetter, @"\");
+                    // return localStorage.RootPath;
+                }
+                catch (Exception e)
+                {
+                    TraceWarning("could not acquire blob lock.");
+                    TraceWarning(e.Message);
+                    TraceWarning(e.StackTrace);
+                    throw;
+                }
             }
-            catch (Exception e)
+            else
             {
-                TraceWarning("could not acquire blob lock.");
-                TraceWarning(e.Message);
-                TraceWarning(e.StackTrace);
-                throw;
+                string driveLetter;
+                TraceInformation(string.Format("Trying to mount blob as azure drive on {0}",
+                    RoleEnvironment.CurrentRoleInstance.Id));
+                while (true)
+                {
+                    try
+                    {
+                        driveLetter = mongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
+                            DriveMountOptions.None);
+                        TraceInformation(string.Format("Write lock acquired on azure drive, mounted as {0}, on role instance",
+                            driveLetter, RoleEnvironment.CurrentRoleInstance.Id));
+                        return driveLetter;
+                    }
+                    catch { }
+                    Thread.Sleep(MountSleep);
+                }
             }
-
         }
 
         private void InitializeDiagnostics()
@@ -307,9 +333,9 @@
             diagObj.Logs.ScheduledTransferLogLevelFilter = LogLevel.Verbose;
             DiagnosticMonitor.Start("DiagnosticsConnectionString", diagObj);
 
-            // var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
-            // var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
-            var fileName = Path.GetTempFileName();
+            var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
+            var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
+            // var fileName = Path.GetTempFileName();
             traceWriter = new StreamWriter(fileName);
             TraceInformation(string.Format("Local log file is {0}", fileName));
         }
