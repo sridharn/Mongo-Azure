@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "MongoSingleServer", "MongoWorker\MongoSingleServer.ccproj", "{556AC35A-C0F4-45F2-A8D3-20E1A2B86468}"
+Project("{CC5FD16D-436D-48AD-A40C-5A424C6E3E79}") = "MongoSingleServer", "MongoSingleServer\MongoSingleServer.ccproj", "{556AC35A-C0F4-45F2-A8D3-20E1A2B86468}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoWorkerRole", "MongoWorkerRole\MongoWorkerRole.csproj", "{7A0D1835-2290-44A3-938E-58407FFA543C}"
 EndProject
