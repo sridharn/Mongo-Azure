@@ -9,11 +9,12 @@
     using System.Threading;
 
     using Microsoft.WindowsAzure;
+    using Microsoft.WindowsAzure.Diagnostics;
     using Microsoft.WindowsAzure.ServiceRuntime;
     using Microsoft.WindowsAzure.StorageClient;
 
     using MongoDB.Azure;
-    using Microsoft.WindowsAzure.Diagnostics;
+    using MongoDB.Driver;
 
     public class MongoWorkerRole : RoleEntryPoint
     {
@@ -35,7 +36,7 @@
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
         private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface -vvvvv ";
-        // private const string MongodCommandLine = "--dbpath {0} --port {1} --journal --nohttpinterface -vvvvv ";
+        
         private const int MaxRetryCount = 5;
         private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
         private const int InitialSleep = 30 * 1000; // 30 seconds
@@ -51,6 +52,7 @@
         private const string TraceLogFileDir = "TraceLogFileDir";
         private const string MongodDataBlobCacheDir = "MongodDataBlobCacheDir";
         private const string MongodLogBlobCacheDir = "MongodLogBlobCacheDir";
+        private const string DiagnosticsConnectionString = "DiagnosticsConnectionString";
 
         private const string TraceLogFile = "MongoWorkerTrace.log";
 
@@ -105,7 +107,7 @@
             {
                 // should we instead call Process.stop?
                 TraceInformation("Shutdown called on mongod");
-                MongoHelper.ShutdownMongo();
+                ShutdownMongo();
                 TraceInformation("Shutdown completed on mongod");
             }
             catch (Exception e)
@@ -195,6 +197,7 @@
                 MongodDataBlobName,
                 MaxDBDriveSize,
                 true,
+                false,
                 out mongoDataDrive
                 );
             TraceInformation(string.Format("Obtained data drive as {0}", path));
@@ -213,6 +216,7 @@
                 MongodLogBlobName,
                 MaxLogDriveSize,
                 false,
+                true,
                 out mongoLogDrive
                 );
             TraceInformation(string.Format("Obtained log root directory as {0}", path));
@@ -235,6 +239,7 @@
             string blobName,
             int driveSize,
             bool waitOnMount,
+            bool fallback,
             out CloudDrive mongoDrive)
         {
             var localStorage = RoleEnvironment.GetLocalResource(localCachePath);
@@ -243,7 +248,20 @@
             CloudDrive.InitializeCache(localStorage.RootPath.TrimEnd('\\'),
                 localStorage.MaximumSizeInMegabytes);
 
-            var storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
+            CloudStorageAccount storageAccount = null;
+
+            if (fallback)
+            {
+                if (!CloudStorageAccount.TryParse(cloudDir, out storageAccount))
+                {
+                    cloudDir = MongoCloudDataDir;
+                }
+            }
+
+            if (storageAccount == null)
+            {
+                storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
+            }
             var blobClient = storageAccount.CreateCloudBlobClient();
 
             TraceInformation("Get container");
@@ -331,7 +349,7 @@
             AddPerfCounters(diagObj);
             diagObj.PerformanceCounters.ScheduledTransferPeriod = PerfCounterTransferInterval;
             diagObj.Logs.ScheduledTransferLogLevelFilter = LogLevel.Verbose;
-            DiagnosticMonitor.Start("DiagnosticsConnectionString", diagObj);
+            DiagnosticMonitor.Start(DiagnosticsConnectionString, diagObj);
 
             var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
             var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
@@ -366,6 +384,16 @@
                     // ignore exceptions on close.
                 }
             }
+        }
+
+        public static void ShutdownMongo()
+        {
+            var mongoEndpoint = MongoHelper.GetMongoConnectionString();
+            var server = MongoServer.Create(
+                string.Format("mongod://{0}:{1}",
+                    mongoEndpoint.Address.ToString(),
+                    mongoEndpoint.Port));
+            server.RunAdminCommand("shutdown");
         }
 
         #region Trace wrappers

@@ -9,7 +9,6 @@
     <ConfigurationSettings>
       <Setting name="MongoDBDataDir" />
       <Setting name="DiagnosticsConnectionString" />
-      <Setting name="MongoDBLogDir" />
     </ConfigurationSettings>
     <Endpoints>
       <InternalEndpoint name="MongodPort" protocol="tcp" port="27017" />

@@ -5,6 +5,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Net;
+    using System.Net.Sockets;
     using System.Text;
 
     using MongoDB.Bson;
@@ -17,23 +18,37 @@
     public class MongoHelper
     {
 
-        private const string MongoAzureSystemDatabase = "mongoazure";
-        private const string MongoAzureSystemTable = "system";
-
         public const string MongodPortKey = "MongodPort";
         public const string MongoRoleName = "MongoWorkerRole";
 
-        private static string GetMongoConnectionString(string host, int port)
+        private static bool CheckEndpoint(IPEndPoint mongodEndpoint)
         {
-            var connectionString = new StringBuilder();
-            connectionString.Append("mongodb://");
-            connectionString.Append(string.Format("{0}:{1}", host, port));
-            return connectionString.ToString();
+            var valid = false;
+            using (var s = new Socket(mongodEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+            {
+                try
+                {
+                    s.Connect(mongodEndpoint);
+                    if (s.Connected)
+                    {
+                        valid = true;
+                        s.Disconnect(true);
+                    }
+                    else
+                    {
+                        valid = false;
+                    }
+                }
+                catch
+                {
+                    valid = false;
+                }
+            }
+            return valid;
         }
 
-        private static IPEndPoint GetMongoPort()
+        public static IPEndPoint GetMongoConnectionString()
         {
-            // need to figure out how to check if the instance is actually up
             var roleInstances =
                 RoleEnvironment.Roles[MongoHelper.MongoRoleName].Instances;
             IPEndPoint mongodEndpoint = null;
@@ -50,47 +65,15 @@
             throw new ApplicationException("Could not connect to mongo");
         }
 
-        private static bool CheckEndpoint(IPEndPoint mongodEndpoint)
-        {
-            var valid = false;
-            var server = MongoServer.Create(GetMongoConnectionString(
-                mongodEndpoint.Address.ToString(),
-                mongodEndpoint.Port));
-
-            if (server.State == MongoServerState.Disconnected)
-            {
-                try
-                {
-                    server.Connect(TimeSpan.FromSeconds(2));
-                    valid = true;
-                }
-                catch 
-                {
-                    valid = false;
-                }
-            }
-            else
-            {
-                valid = true;
-            }
-            return valid;
-        }
-
-        public static string GetMongoConnectionString()
-        {
-            var mongodEndpoint = GetMongoPort();
-            return GetMongoConnectionString(mongodEndpoint.Address.ToString(), mongodEndpoint.Port);
-        }
-
-        public static string GetLocalMongoConnectionString()
-        {
-            var mongodEndpoint = GetMongoPort();
-            return GetMongoConnectionString("127.0.0.1", mongodEndpoint.Port);
-        }
-
         public static MongoServer GetMongoServer()
         {
-            var server = MongoServer.Create(GetMongoConnectionString());
+            var mongoEndpoint = GetMongoConnectionString();
+            var connectionString = new StringBuilder();
+            connectionString.Append("mongodb://");
+            connectionString.Append(string.Format("{0}:{1}", 
+                mongoEndpoint.Address.ToString(), 
+                mongoEndpoint.Port));
+            var server = MongoServer.Create(connectionString.ToString());
 
             if (server.State == MongoServerState.Disconnected)
             {
@@ -104,38 +87,6 @@
                 }
             }
             return server;
-        }
-
-        public static MongoServer GetLocalMongoServer()
-        {
-            var server = MongoServer.Create(GetLocalMongoConnectionString());
-
-            if (server.State == MongoServerState.Disconnected)
-            {
-                try
-                {
-                    server.Connect(TimeSpan.FromSeconds(2));
-                }
-                catch (Exception e)
-                {
-                    throw new ApplicationException("Could not connect to mongo: " + e.Message);
-                }
-            }
-            return server;
-        }
-
-        public static void ShutdownMongo()
-        {
-            try
-            {
-                var server = GetLocalMongoServer();
-                // server.Shutdown();
-                server.RunAdminCommand("shutdown");
-            }
-            catch 
-            {
-                // ignore exceptions since this is only called during shutdown
-            }
         }
 
     }
