@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ServiceDefinition name="MongoWorker" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
-  <WorkerRole name="MongoWorkerRole" vmsize="Small">
+  <WorkerRole name="MongoWorkerRole" vmsize="Medium">
     <LocalResources>
       <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
       <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="1024" />

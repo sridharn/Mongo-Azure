@@ -40,10 +40,10 @@
         private const int MaxRetryCount = 5;
         private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
         private const int InitialSleep = 30 * 1000; // 30 seconds
-        //private const int MaxDBDriveSize = 5 * 1024; // in MB
-        //private const int MaxLogDriveSize = 1024; // in MB
-        private const int MaxDBDriveSize = 512; // in MB
-        private const int MaxLogDriveSize = 100; // in MB
+        private const int MaxDBDriveSize = 5 * 1024; // in MB
+        private const int MaxLogDriveSize = 1024; // in MB
+        // private const int MaxDBDriveSize = 512; // in MB
+        // private const int MaxLogDriveSize = 100; // in MB
         private const int MountSleep = 30 * 1000; // 30 seconds;
 
         private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromMinutes(30);
@@ -58,6 +58,7 @@
 
         #endregion constant settings
 
+        private string mongoDataDriveLetter = null;
         private CloudDrive mongoDataDrive = null;
         private CloudDrive mongoLogDrive = null;
         private string mongoHost;
@@ -190,7 +191,7 @@
         private string GetMongoDataDirectory()
         {
             TraceInformation("Getting db path");
-            var path = GetMountedPathFromBlob(
+            mongoDataDriveLetter = GetMountedPathFromBlob(
                 MongoLocalDataDir,
                 MongoCloudDataDir,
                 MongodDataBlobContainerName,
@@ -200,8 +201,8 @@
                 false,
                 out mongoDataDrive
                 );
-            TraceInformation(string.Format("Obtained data drive as {0}", path));
-            var dir = Directory.CreateDirectory(Path.Combine(path, @"data"));
+            TraceInformation(string.Format("Obtained data drive as {0}", mongoDataDriveLetter));
+            var dir = Directory.CreateDirectory(Path.Combine(mongoDataDriveLetter, @"data"));
             TraceInformation(string.Format("Data directory is {0}", dir.FullName));
             return dir.FullName;
         }
@@ -254,14 +255,13 @@
             {
                 if (!CloudStorageAccount.TryParse(cloudDir, out storageAccount))
                 {
-                    cloudDir = MongoCloudDataDir;
+                    TraceInformation(string.Format("{0} is not found. using backup", cloudDir));
+                    mongoDrive = mongoDataDrive;
+                    return mongoDataDriveLetter;
                 }
             }
 
-            if (storageAccount == null)
-            {
-                storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
-            }
+            storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
             var blobClient = storageAccount.CreateCloudBlobClient();
 
             TraceInformation("Get container");
