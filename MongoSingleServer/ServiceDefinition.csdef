@@ -3,8 +3,8 @@
   <WorkerRole name="MongoWorkerRole" vmsize="Medium">
     <LocalResources>
       <LocalStorage name="MongoDBLocalDataDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
-      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
       <LocalStorage name="MongoTraceDir" cleanOnRoleRecycle="false" sizeInMB="100" />
+      <LocalStorage name="MongoDBLocalLogDir" cleanOnRoleRecycle="false" sizeInMB="1024" />
     </LocalResources>
     <ConfigurationSettings>
       <Setting name="MongoDBDataDir" />

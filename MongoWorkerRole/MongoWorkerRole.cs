@@ -35,7 +35,7 @@ namespace MongoDB.MongoWorkerRole
     {
 
         #region constant settings
-
+        // Do not modify
         private const string MongodDataBlobContainerName = "mongoddatadrive";
         private const string MongodDataBlobName = "mongoddblob.vhd";
         private const string MongodLogBlobContainerName = "mongodlogdrive";
@@ -51,18 +51,6 @@ namespace MongoDB.MongoWorkerRole
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
         private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface -vvvvv ";
-        
-        private const int MaxRetryCount = 5;
-        private const int SleepBetweenRetry = 30 * 1000; // 30 seconds
-        private const int InitialSleep = 30 * 1000; // 30 seconds
-        private const int MaxDBDriveSize = 5 * 1024; // in MB
-        private const int MaxLogDriveSize = 1024; // in MB
-        // private const int MaxDBDriveSize = 512; // in MB
-        // private const int MaxLogDriveSize = 100; // in MB
-        private const int MountSleep = 30 * 1000; // 30 seconds;
-
-        private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromMinutes(30);
-        private readonly TimeSpan PerfCounterTransferInterval = TimeSpan.FromMinutes(15);
 
         private const string TraceLogFileDir = "TraceLogFileDir";
         private const string MongodDataBlobCacheDir = "MongodDataBlobCacheDir";
@@ -70,6 +58,15 @@ namespace MongoDB.MongoWorkerRole
         private const string DiagnosticsConnectionString = "DiagnosticsConnectionString";
 
         private const string TraceLogFile = "MongoWorkerTrace.log";
+
+        // The following settings are configurable
+        private const int MaxDBDriveSize = 5 * 1024; // in MB
+        private const int MaxLogDriveSize = 1024 ; // in MB
+        private const int MountSleep = 30 * 1000; // 30 seconds;
+
+        private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromMinutes(30);
+        private readonly TimeSpan PerfCounterTransferInterval = TimeSpan.FromMinutes(15);
+        // end of configurable section
 
         #endregion constant settings
 
@@ -94,6 +91,7 @@ namespace MongoDB.MongoWorkerRole
                 TraceWarning(e.Message);
                 TraceWarning(e.StackTrace);
             }
+            TraceWarning("MongoWorkerRole run method exiting since mongod process wait completed");
         }
 
         public override bool OnStart()
@@ -111,7 +109,6 @@ namespace MongoDB.MongoWorkerRole
             SetHostAndPort();
             TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
 
-            // this try block should not be on the final code
             StartMongoD();
             return base.OnStart();
         }
@@ -123,7 +120,11 @@ namespace MongoDB.MongoWorkerRole
             {
                 // should we instead call Process.stop?
                 TraceInformation("Shutdown called on mongod");
-                ShutdownMongo();
+                if ((mongodProcess != null) &&
+                    !(mongodProcess.HasExited))
+                {
+                    ShutdownMongo();
+                }
                 TraceInformation("Shutdown completed on mongod");
             }
             catch (Exception e)
@@ -136,7 +137,10 @@ namespace MongoDB.MongoWorkerRole
             try
             {
                 TraceInformation("Unmount called on data drive");
-                mongoDataDrive.Unmount();
+                if (mongoDataDrive != null) 
+                {
+                    mongoDataDrive.Unmount();
+                }
                 TraceInformation("Unmount completed on data drive");
             }
             catch (Exception e)
@@ -149,7 +153,10 @@ namespace MongoDB.MongoWorkerRole
             try
             {
                 TraceInformation("Unmount called on log drive");
-                mongoLogDrive.Unmount();
+                if (mongoLogDrive != null) 
+                {
+                    mongoLogDrive.Unmount();
+                }
                 TraceInformation("Unmount completed on log drive");
             }
             catch (Exception e)
@@ -258,25 +265,28 @@ namespace MongoDB.MongoWorkerRole
             bool fallback,
             out CloudDrive mongoDrive)
         {
-            var localStorage = RoleEnvironment.GetLocalResource(localCachePath);
-
-            TraceInformation("Initialize cache");
-            CloudDrive.InitializeCache(localStorage.RootPath.TrimEnd('\\'),
-                localStorage.MaximumSizeInMegabytes);
+            TraceInformation(string.Format("In mounting cloud drive for dir {0}", cloudDir));
 
             CloudStorageAccount storageAccount = null;
 
-            if (fallback)
+            if (fallback) 
             {
-                if (!CloudStorageAccount.TryParse(cloudDir, out storageAccount))
+                try 
                 {
+                    storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
+                } 
+                catch 
+                {
+                    // case for fallback to data dir for log also
                     TraceInformation(string.Format("{0} is not found. using backup", cloudDir));
                     mongoDrive = mongoDataDrive;
                     return mongoDataDriveLetter;
                 }
+            } 
+            else 
+            {
+                storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
             }
-
-            storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
             var blobClient = storageAccount.CreateCloudBlobClient();
 
             TraceInformation("Get container");
@@ -313,6 +323,12 @@ namespace MongoDB.MongoWorkerRole
 
             }
 
+            TraceInformation("Initialize cache");
+            var localStorage = RoleEnvironment.GetLocalResource(localCachePath);
+
+            CloudDrive.InitializeCache(localStorage.RootPath.TrimEnd('\\'),
+                localStorage.MaximumSizeInMegabytes);
+
             // mount the drive and get the root path of the drive it's mounted as
             if (!waitOnMount)
             {
@@ -325,8 +341,6 @@ namespace MongoDB.MongoWorkerRole
                     TraceInformation(string.Format("Write lock acquired on azure drive, mounted as {0}, on role instance",
                         driveLetter, RoleEnvironment.CurrentRoleInstance.Id));
                     return driveLetter;
-                    // return Path.Combine(driveLetter, @"\");
-                    // return localStorage.RootPath;
                 }
                 catch (Exception e)
                 {
@@ -368,14 +382,22 @@ namespace MongoDB.MongoWorkerRole
 
             var localStorage = RoleEnvironment.GetLocalResource(MongoTraceDir);
             var fileName = Path.Combine(localStorage.RootPath, TraceLogFile);
-            // var fileName = Path.GetTempFileName();
             traceWriter = new StreamWriter(fileName);
             TraceInformation(string.Format("Local log file is {0}", fileName));
         }
 
-        private void AddPerfCounters(DiagnosticMonitorConfiguration diagObj)
-        {
-            AddPerfCounter(diagObj, @"\Processor(*)\% Processor Time", 5);
+        private void AddPerfCounters(DiagnosticMonitorConfiguration diagObj) {
+            AddPerfCounter(diagObj, @"\LogicalDisk(*)\% Disk Read Time", 30);
+            AddPerfCounter(diagObj, @"\LogicalDisk(*)\% Disk Write Time", 30);
+            AddPerfCounter(diagObj, @"\LogicalDisk(*)\% Free Space", 30);
+            AddPerfCounter(diagObj, @"\LogicalDisk(*)\Disk Read Bytes/sec", 30);
+            AddPerfCounter(diagObj, @"\LogicalDisk(*)\Disk Write Bytes/sec", 30);
+            AddPerfCounter(diagObj, @"\Memory\Available MBytes", 30);
+            AddPerfCounter(diagObj, @"\Network Interface(*)\Bytes Received/sec", 30);
+            AddPerfCounter(diagObj, @"\Network Interface(*)\Bytes Sent/sec", 30);
+            AddPerfCounter(diagObj, @"\Processor(*)\% Processor Time", 30);
+            AddPerfCounter(diagObj, @"\PhysicalDisk(*)\% Disk Read Time", 30);
+            AddPerfCounter(diagObj, @"\PhysicalDisk(*)\% Disk Write Time", 30);
         }
 
         private static void AddPerfCounter(DiagnosticMonitorConfiguration config, string name, double seconds)
@@ -443,7 +465,7 @@ namespace MongoDB.MongoWorkerRole
                 }
                 catch
                 {
-                    // ignore trace messages
+                    // ignore trace message errors
                 }
             }
         }
