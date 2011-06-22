@@ -50,7 +50,7 @@ namespace MongoDB.MongoWorkerRole
         
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
-        private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface -vvvvv ";
+        private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface --logappend ";
 
         private const string TraceLogFileDir = "TraceLogFileDir";
         private const string MongodDataBlobCacheDir = "MongodDataBlobCacheDir";
@@ -206,7 +206,7 @@ namespace MongoDB.MongoWorkerRole
             {
 
                 TraceError("Can't start Mongo: " + e.Message);
-                throw new Exception("Can't start mongo: " + e.Message); // throwing an exception here causes the VM to recycle
+                throw new ApplicationException("Can't start mongo: " + e.Message); // throwing an exception here causes the VM to recycle
             }
         }
 
@@ -425,12 +425,12 @@ namespace MongoDB.MongoWorkerRole
 
         public static void ShutdownMongo()
         {
-            var mongoEndpoint = MongoHelper.GetMongoConnectionString();
+            var mongoEndpoint = MongoHelper.GetMongoEndPoint();
             var server = MongoServer.Create(
                 string.Format("mongod://{0}:{1}",
                     mongoEndpoint.Address.ToString(),
                     mongoEndpoint.Port));
-            server.RunAdminCommand("shutdown");
+            server.Shutdown();
         }
 
         #region Trace wrappers

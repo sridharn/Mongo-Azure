@@ -62,7 +62,12 @@ namespace MongoDB.Azure
             return valid;
         }
 
-        public static IPEndPoint GetMongoConnectionString()
+        /// <summary>
+        /// Get the end point associated with the mongod instance. If running with a warm standby instance
+        /// it returns the endpoint on which mongod is actually listening.
+        /// </summary>
+        /// <returns>An IPEndPoint where mongod is listening</returns>
+        public static IPEndPoint GetMongoEndPoint()
         {
             var roleInstances =
                 RoleEnvironment.Roles[MongoHelper.MongoRoleName].Instances;
@@ -80,27 +85,21 @@ namespace MongoDB.Azure
             throw new ApplicationException("Could not connect to mongo");
         }
 
+        /// <summary>
+        /// Get an instance of MongoServer and connect to it. Uses default connection string of the form
+        /// mongod://host:port. For other connection forms or options use GetMongoEndPoint and create your
+        /// own connection
+        /// </summary>
+        /// <returns>MongoServer connected to with the default connection string</returns>
         public static MongoServer GetMongoServer()
         {
-            var mongoEndpoint = GetMongoConnectionString();
+            var mongoEndpoint = GetMongoEndPoint();
             var connectionString = new StringBuilder();
             connectionString.Append("mongodb://");
             connectionString.Append(string.Format("{0}:{1}", 
                 mongoEndpoint.Address.ToString(), 
                 mongoEndpoint.Port));
             var server = MongoServer.Create(connectionString.ToString());
-
-            if (server.State == MongoServerState.Disconnected)
-            {
-                try
-                {
-                    server.Connect(TimeSpan.FromSeconds(2));
-                }
-                catch (Exception e)
-                {
-                    throw new ApplicationException("Could not connect to mongo: " + e.Message);
-                }
-            }
             return server;
         }
 

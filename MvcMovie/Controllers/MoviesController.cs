@@ -45,8 +45,7 @@ namespace MvcMovie.Controllers
         public ViewResult Index()
         {
             var collection = GetMoviesCollection();
-            var query = Query.Null;
-            var cursor = collection.Find(query);
+            var cursor = collection.FindAll();
             return View(cursor.ToList<Movie>());
         }
 
@@ -57,7 +56,7 @@ namespace MvcMovie.Controllers
         {
             var collection = GetMoviesCollection();
             var query = Query.EQ("_id", new ObjectId(id));
-            var movie = collection.FindOneAs<Movie>(query);
+            var movie = collection.FindOne(query);
             return View(movie);
         }
 
@@ -78,7 +77,7 @@ namespace MvcMovie.Controllers
             if (ModelState.IsValid)
             {
                 var collection = GetMoviesCollection();
-                collection.Insert<Movie>(movie);
+                collection.Insert(movie);
                 return RedirectToAction("Index");  
             }
 
@@ -92,7 +91,7 @@ namespace MvcMovie.Controllers
         {
             var collection = GetMoviesCollection();
             var query = Query.EQ("_id", new ObjectId(id));
-            var movie = collection.FindOneAs<Movie>(query);
+            var movie = collection.FindOne(query);
             return View(movie);
         }
 
@@ -105,7 +104,7 @@ namespace MvcMovie.Controllers
             if (ModelState.IsValid)
             {
                 var collection = GetMoviesCollection();
-                collection.Save<Movie>(movie);
+                collection.Save(movie);
                 return RedirectToAction("Index");
             }
             return View(movie);
@@ -118,7 +117,7 @@ namespace MvcMovie.Controllers
         {
             var collection = GetMoviesCollection();
             var query = Query.EQ("_id", new ObjectId(id));
-            var movie = collection.FindOneAs<Movie>(query);
+            var movie = collection.FindOne(query);
             return View(movie);
         }
 
@@ -136,7 +135,6 @@ namespace MvcMovie.Controllers
 
         protected override void Dispose(bool disposing)
         {
-            // db.Dispose();
             base.Dispose(disposing);
         }
 
