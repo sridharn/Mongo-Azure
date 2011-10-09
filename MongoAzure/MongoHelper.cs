@@ -13,8 +13,7 @@
 * limitations under the License.
 */
 
-namespace MongoDB.Azure
-{
+namespace MongoDB.Azure {
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
@@ -30,32 +29,23 @@ namespace MongoDB.Azure
 
     using Microsoft.WindowsAzure.ServiceRuntime;
 
-    public class MongoHelper
-    {
+    public class MongoHelper {
 
         public const string MongodPortKey = "MongodPort";
         public const string MongoRoleName = "MongoWorkerRole";
 
-        private static bool CheckEndpoint(IPEndPoint mongodEndpoint)
-        {
+        private static bool CheckEndpoint(IPEndPoint mongodEndpoint) {
             var valid = false;
-            using (var s = new Socket(mongodEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
-            {
-                try
-                {
+            using (var s = new Socket(mongodEndpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp)) {
+                try {
                     s.Connect(mongodEndpoint);
-                    if (s.Connected)
-                    {
+                    if (s.Connected) {
                         valid = true;
                         s.Disconnect(true);
-                    }
-                    else
-                    {
+                    } else {
                         valid = false;
                     }
-                }
-                catch
-                {
+                } catch {
                     valid = false;
                 }
             }
@@ -67,17 +57,14 @@ namespace MongoDB.Azure
         /// it returns the endpoint on which mongod is actually listening.
         /// </summary>
         /// <returns>An IPEndPoint where mongod is listening</returns>
-        public static IPEndPoint GetMongoEndPoint()
-        {
+        public static IPEndPoint GetMongoEndPoint() {
             var roleInstances =
                 RoleEnvironment.Roles[MongoHelper.MongoRoleName].Instances;
             IPEndPoint mongodEndpoint = null;
-            foreach (var instance in roleInstances)
-            {
+            foreach (var instance in roleInstances) {
                 mongodEndpoint = instance.InstanceEndpoints[MongoHelper.MongodPortKey].IPEndpoint;
                 var isEndpointValid = CheckEndpoint(mongodEndpoint);
-                if (isEndpointValid)
-                {
+                if (isEndpointValid) {
                     return mongodEndpoint;
                 }
             }
@@ -91,13 +78,12 @@ namespace MongoDB.Azure
         /// own connection
         /// </summary>
         /// <returns>MongoServer connected to with the default connection string</returns>
-        public static MongoServer GetMongoServer()
-        {
+        public static MongoServer GetMongoServer() {
             var mongoEndpoint = GetMongoEndPoint();
             var connectionString = new StringBuilder();
             connectionString.Append("mongodb://");
-            connectionString.Append(string.Format("{0}:{1}", 
-                mongoEndpoint.Address.ToString(), 
+            connectionString.Append(string.Format("{0}:{1}",
+                mongoEndpoint.Address.ToString(),
                 mongoEndpoint.Port));
             var server = MongoServer.Create(connectionString.ToString());
             return server;

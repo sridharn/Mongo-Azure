@@ -13,8 +13,7 @@
 * limitations under the License.
 */
 
-namespace MongoDB.MongoWorkerRole
-{
+namespace MongoDB.MongoWorkerRole {
     using System;
     using System.Configuration;
     using System.Diagnostics;
@@ -31,8 +30,7 @@ namespace MongoDB.MongoWorkerRole
     using MongoDB.Azure;
     using MongoDB.Driver;
 
-    public class MongoWorkerRole : RoleEntryPoint
-    {
+    public class MongoWorkerRole : RoleEntryPoint {
 
         #region constant settings
         // Do not modify
@@ -47,10 +45,10 @@ namespace MongoDB.MongoWorkerRole
         private const string MongoLocalLogDir = "MongoDBLocalLogDir";
 
         private const string MongoTraceDir = "MongoTraceDir";
-        
+
         private const string MongoBinaryFolder = @"approot\MongoExe";
         private const string MongoLogFileName = "mongod.log";
-        private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --journal --nohttpinterface --logappend ";
+        private const string MongodCommandLine = "--dbpath {0} --port {1} --logpath {2} --nohttpinterface --logappend ";
 
         private const string TraceLogFileDir = "TraceLogFileDir";
         private const string MongodDataBlobCacheDir = "MongodDataBlobCacheDir";
@@ -61,7 +59,7 @@ namespace MongoDB.MongoWorkerRole
 
         // The following settings are configurable
         private const int MaxDBDriveSize = 5 * 1024; // in MB
-        private const int MaxLogDriveSize = 1024 ; // in MB
+        private const int MaxLogDriveSize = 1024; // in MB
         private const int MountSleep = 30 * 1000; // 30 seconds;
 
         private readonly TimeSpan DiagnosticTransferInterval = TimeSpan.FromMinutes(30);
@@ -78,15 +76,11 @@ namespace MongoDB.MongoWorkerRole
         private Process mongodProcess = null;
         private TextWriter traceWriter = null;
 
-        public override void Run()
-        {
+        public override void Run() {
             TraceInformation("MongoWorkerRole run method called");
-            try
-            {
+            try {
                 mongodProcess.WaitForExit();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 TraceWarning("exception when waiting on mongod process");
                 TraceWarning(e.Message);
                 TraceWarning(e.StackTrace);
@@ -94,15 +88,13 @@ namespace MongoDB.MongoWorkerRole
             TraceWarning("MongoWorkerRole run method exiting since mongod process wait completed");
         }
 
-        public override bool OnStart()
-        {
+        public override bool OnStart() {
             InitializeDiagnostics();
 
             TraceInformation("MongoWorkerRole onstart called");
             // Set the maximum number of concurrent connections 
             ServicePointManager.DefaultConnectionLimit = 12;
-            CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) =>
-            {
+            CloudStorageAccount.SetConfigurationSettingPublisher((configName, configSetter) => {
                 configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
             });
 
@@ -113,54 +105,41 @@ namespace MongoDB.MongoWorkerRole
             return base.OnStart();
         }
 
-        public override void OnStop()
-        {
+        public override void OnStop() {
             TraceInformation("MongoWorkerRole onstop called");
-            try
-            {
+            try {
                 // should we instead call Process.stop?
                 TraceInformation("Shutdown called on mongod");
                 if ((mongodProcess != null) &&
-                    !(mongodProcess.HasExited))
-                {
+                    !(mongodProcess.HasExited)) {
                     ShutdownMongo();
                 }
                 TraceInformation("Shutdown completed on mongod");
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 //Ignore exceptions caught on unmount
                 TraceWarning("Exception in onstop - mongo shutdown");
                 TraceWarning(e.Message);
                 TraceWarning(e.StackTrace);
             }
-            try
-            {
+            try {
                 TraceInformation("Unmount called on data drive");
-                if (mongoDataDrive != null) 
-                {
+                if (mongoDataDrive != null) {
                     mongoDataDrive.Unmount();
                 }
                 TraceInformation("Unmount completed on data drive");
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 //Ignore exceptions caught on unmount
                 TraceWarning("Exception in onstop - unmount of data drive");
                 TraceWarning(e.Message);
                 TraceWarning(e.StackTrace);
             }
-            try
-            {
+            try {
                 TraceInformation("Unmount called on log drive");
-                if (mongoLogDrive != null) 
-                {
+                if (mongoLogDrive != null) {
                     mongoLogDrive.Unmount();
                 }
                 TraceInformation("Unmount completed on log drive");
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 //Ignore exceptions caught on unmount
                 TraceWarning("Exception in onstop - unmount of log drive");
                 TraceWarning(e.Message);
@@ -171,10 +150,9 @@ namespace MongoDB.MongoWorkerRole
             base.OnStop();
         }
 
-        private void StartMongoD()
-        {
+        private void StartMongoD() {
             var mongoAppRoot = Path.Combine(
-                Environment.GetEnvironmentVariable("RoleRoot")+@"\",
+                Environment.GetEnvironmentVariable("RoleRoot") + @"\",
                 MongoBinaryFolder);
             var mongodPath = Path.Combine(mongoAppRoot, @"mongod.exe");
 
@@ -189,29 +167,23 @@ namespace MongoDB.MongoWorkerRole
             TraceInformation(string.Format("Launching mongod as {0} {1}", mongodPath, cmdline));
 
             // launch mongo
-            try
-            {
-                mongodProcess = new Process()
-                {
-                    StartInfo = new ProcessStartInfo(mongodPath, cmdline)
-                    {
+            try {
+                mongodProcess = new Process() {
+                    StartInfo = new ProcessStartInfo(mongodPath, cmdline) {
                         UseShellExecute = false,
                         WorkingDirectory = mongoAppRoot,
                         CreateNoWindow = false
                     }
                 };
                 mongodProcess.Start();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
 
                 TraceError("Can't start Mongo: " + e.Message);
                 throw new ApplicationException("Can't start mongo: " + e.Message); // throwing an exception here causes the VM to recycle
             }
         }
 
-        private string GetMongoDataDirectory()
-        {
+        private string GetMongoDataDirectory() {
             TraceInformation("Getting db path");
             mongoDataDriveLetter = GetMountedPathFromBlob(
                 MongoLocalDataDir,
@@ -229,8 +201,7 @@ namespace MongoDB.MongoWorkerRole
             return dir.FullName;
         }
 
-        private string GetLogFile()
-        {
+        private string GetLogFile() {
             TraceInformation("Getting log file base path");
             var path = GetMountedPathFromBlob(
                 MongoLocalLogDir,
@@ -244,12 +215,11 @@ namespace MongoDB.MongoWorkerRole
                 );
             TraceInformation(string.Format("Obtained log root directory as {0}", path));
             var dir = Directory.CreateDirectory(Path.Combine(path, @"log"));
-            var logfile = Path.Combine(dir.FullName+@"\", MongoLogFileName);
+            var logfile = Path.Combine(dir.FullName + @"\", MongoLogFileName);
             return logfile;
         }
 
-        private void SetHostAndPort()
-        {
+        private void SetHostAndPort() {
             var endPoint = RoleEnvironment.CurrentRoleInstance.InstanceEndpoints[MongoHelper.MongodPortKey].IPEndpoint;
             mongoHost = endPoint.Address.ToString();
             mongoPort = endPoint.Port;
@@ -263,28 +233,21 @@ namespace MongoDB.MongoWorkerRole
             int driveSize,
             bool waitOnMount,
             bool fallback,
-            out CloudDrive mongoDrive)
-        {
+            out CloudDrive mongoDrive) {
             TraceInformation(string.Format("In mounting cloud drive for dir {0}", cloudDir));
 
             CloudStorageAccount storageAccount = null;
 
-            if (fallback) 
-            {
-                try 
-                {
+            if (fallback) {
+                try {
                     storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
-                } 
-                catch 
-                {
+                } catch {
                     // case for fallback to data dir for log also
                     TraceInformation(string.Format("{0} is not found. using backup", cloudDir));
                     mongoDrive = mongoDataDrive;
                     return mongoDataDriveLetter;
                 }
-            } 
-            else 
-            {
+            } else {
                 storageAccount = CloudStorageAccount.FromConfigurationSetting(cloudDir);
             }
             var blobClient = storageAccount.CreateCloudBlobClient();
@@ -294,12 +257,9 @@ namespace MongoDB.MongoWorkerRole
             var driveContainer = blobClient.GetContainerReference(containerName);
 
             // create blob container (it has to exist before creating the cloud drive)
-            try
-            {
+            try {
                 driveContainer.CreateIfNotExist();
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 TraceInformation("Exception when creating container");
                 TraceInformation(e.Message);
                 TraceInformation(e.StackTrace);
@@ -310,12 +270,9 @@ namespace MongoDB.MongoWorkerRole
 
             // create the cloud drive
             mongoDrive = storageAccount.CreateCloudDrive(mongoBlobUri);
-            try
-            {
+            try {
                 mongoDrive.Create(driveSize);
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 // exception is thrown if all is well but the drive already exists
                 TraceInformation("Exception when creating cloud drive. safe to ignore");
                 TraceInformation(e.Message);
@@ -330,10 +287,8 @@ namespace MongoDB.MongoWorkerRole
                 localStorage.MaximumSizeInMegabytes);
 
             // mount the drive and get the root path of the drive it's mounted as
-            if (!waitOnMount)
-            {
-                try
-                {
+            if (!waitOnMount) {
+                try {
                     TraceInformation(string.Format("Trying to mount blob as azure drive on {0}",
                         RoleEnvironment.CurrentRoleInstance.Id));
                     var driveLetter = mongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
@@ -341,38 +296,30 @@ namespace MongoDB.MongoWorkerRole
                     TraceInformation(string.Format("Write lock acquired on azure drive, mounted as {0}, on role instance",
                         driveLetter, RoleEnvironment.CurrentRoleInstance.Id));
                     return driveLetter;
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     TraceWarning("could not acquire blob lock.");
                     TraceWarning(e.Message);
                     TraceWarning(e.StackTrace);
                     throw;
                 }
-            }
-            else
-            {
+            } else {
                 string driveLetter;
                 TraceInformation(string.Format("Trying to mount blob as azure drive on {0}",
                     RoleEnvironment.CurrentRoleInstance.Id));
-                while (true)
-                {
-                    try
-                    {
+                while (true) {
+                    try {
                         driveLetter = mongoDrive.Mount(localStorage.MaximumSizeInMegabytes,
                             DriveMountOptions.None);
                         TraceInformation(string.Format("Write lock acquired on azure drive, mounted as {0}, on role instance",
                             driveLetter, RoleEnvironment.CurrentRoleInstance.Id));
                         return driveLetter;
-                    }
-                    catch { }
+                    } catch { }
                     Thread.Sleep(MountSleep);
                 }
             }
         }
 
-        private void InitializeDiagnostics()
-        {
+        private void InitializeDiagnostics() {
             var diagObj = DiagnosticMonitor.GetDefaultInitialConfiguration();
             diagObj.Logs.ScheduledTransferPeriod = DiagnosticTransferInterval;
             AddPerfCounters(diagObj);
@@ -400,31 +347,24 @@ namespace MongoDB.MongoWorkerRole
             AddPerfCounter(diagObj, @"\PhysicalDisk(*)\% Disk Write Time", 30);
         }
 
-        private static void AddPerfCounter(DiagnosticMonitorConfiguration config, string name, double seconds)
-        {
+        private static void AddPerfCounter(DiagnosticMonitorConfiguration config, string name, double seconds) {
             var perfmon = new PerformanceCounterConfiguration();
             perfmon.CounterSpecifier = name;
             perfmon.SampleRate = System.TimeSpan.FromSeconds(seconds);
             config.PerformanceCounters.DataSources.Add(perfmon);
         }
 
-        private void ShutdownDiagnostics()
-        {
-            if (traceWriter != null)
-            {
-                try
-                {
+        private void ShutdownDiagnostics() {
+            if (traceWriter != null) {
+                try {
                     traceWriter.Close();
-                }
-                catch
-                {
+                } catch {
                     // ignore exceptions on close.
                 }
             }
         }
 
-        public static void ShutdownMongo()
-        {
+        public static void ShutdownMongo() {
             var mongoEndpoint = MongoHelper.GetMongoEndPoint();
             var server = MongoServer.Create(
                 string.Format("mongod://{0}:{1}",
@@ -435,36 +375,28 @@ namespace MongoDB.MongoWorkerRole
 
         #region Trace wrappers
 
-        private void TraceInformation(string message)
-        {
+        private void TraceInformation(string message) {
             Trace.TraceInformation(message);
             WriteTraceMessage(message, "INFORMATION");
         }
 
-        private void TraceWarning(string message)
-        {
+        private void TraceWarning(string message) {
             Trace.TraceWarning(message);
             WriteTraceMessage(message, "WARNING");
         }
 
-        private void TraceError(string message)
-        {
+        private void TraceError(string message) {
             Trace.TraceError(message);
             WriteTraceMessage(message, "ERRROR");
         }
 
-        private void WriteTraceMessage(string message, string type)
-        {
-            if (traceWriter != null)
-            {
-                try
-                {
+        private void WriteTraceMessage(string message, string type) {
+            if (traceWriter != null) {
+                try {
                     var messageString = string.Format("{0}-{1}-{2}", DateTime.UtcNow.ToString(), type, message);
                     traceWriter.WriteLine(messageString);
                     traceWriter.Flush();
-                }
-                catch
-                {
+                } catch {
                     // ignore trace message errors
                 }
             }
