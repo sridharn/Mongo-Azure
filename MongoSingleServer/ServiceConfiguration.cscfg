@@ -5,6 +5,7 @@
     <ConfigurationSettings>
       <Setting name="MongoDBDataDir" value="UseDevelopmentStorage=true" />
       <Setting name="DiagnosticsConnectionString" value="UseDevelopmentStorage=true" />
+      <Setting name="TableStore" value="UseDevelopmentStorage=true" />
     </ConfigurationSettings>
   </Role>
   <Role name="MvcMovie">

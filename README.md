@@ -10,8 +10,9 @@ Welcome to MongoDB on Azure!. This is a prototype to have a single instance of M
 ## Building ##
 ### Prerequisites ###
   * .Net 4.0.
-  * Windows Azure SDK 1.4 
-  * Visual Studio 2010
+  * Visual Studio 2010 SP1
+  * Windows Azure SDK 1.5 
+  * Windows Azure Tools for Visual Studio 2010 1.5
 
 ### Build ###
   * Open MongoAzure.sln from Visual Studio 2010 and build

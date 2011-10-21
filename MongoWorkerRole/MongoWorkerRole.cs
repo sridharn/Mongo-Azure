@@ -43,6 +43,7 @@ namespace MongoDB.MongoWorkerRole {
         private const string MongoCloudLogDir = "MongoDBLogDir";
         private const string MongoLocalDataDir = "MongoDBLocalDataDir";
         private const string MongoLocalLogDir = "MongoDBLocalLogDir";
+        private const string IPTableStore = "TableStore";
 
         private const string MongoTraceDir = "MongoTraceDir";
 
@@ -98,7 +99,7 @@ namespace MongoDB.MongoWorkerRole {
                 configSetter(RoleEnvironment.GetConfigurationSettingValue(configName));
             });
 
-            SetHostAndPort();
+            LogNodeInfo();
             TraceInformation(string.Format("Obtained host={0}, port={1}", mongoHost, mongoPort));
 
             StartMongoD();
@@ -148,6 +149,34 @@ namespace MongoDB.MongoWorkerRole {
             TraceInformation("Calling diagnostics shutdown");
             ShutdownDiagnostics();
             base.OnStop();
+        }
+
+        private void LogNodeInfo() {
+            SetHostAndPort();
+            // StoreNodeInfo();
+       
+        }
+
+        private int ParseNodeInstanceId() {
+            string instanceId = RoleEnvironment.CurrentRoleInstance.Id;
+            int instanceIndex = 0;
+            if (RoleEnvironment.IsEmulated) {
+                int.TryParse(instanceId.Substring(instanceId.LastIndexOf("_") + 1), out instanceIndex);
+            } else {
+                int.TryParse(instanceId.Substring(instanceId.LastIndexOf(".") + 1), out instanceIndex);
+            }
+            return instanceIndex;
+        }
+
+        private void StoreNodeInfo() {
+            var account = CloudStorageAccount.FromConfigurationSetting(IPTableStore);
+            try {
+                CloudTableClient.CreateTablesFromModel(typeof(NodeInformationServiceContext),
+                               account.TableEndpoint.AbsoluteUri, account.Credentials);
+            } catch { }
+
+            var context = new NodeInformationServiceContext(account.TableEndpoint.ToString(), account.Credentials);
+            context.AddNodeInfo(RoleEnvironment.CurrentRoleInstance.Id, ParseNodeInstanceId(), mongoHost, mongoPort);
         }
 
         private void StartMongoD() {
