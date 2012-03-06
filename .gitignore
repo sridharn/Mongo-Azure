@@ -4,3 +4,8 @@ obj
 *.user
 *.suo
 *.pfx
+*.cer
+csx
+Backup
+UpgradeLog.XML
+_UpgradeReport_Files
